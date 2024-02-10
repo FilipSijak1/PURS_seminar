@@ -46,15 +46,32 @@ def register():
             response.status_code = 400
         else:
             try:
-                # Čitanje sadržaja SQL datoteke
-                with app.open_resource('templates/registerUser.sql', mode='r') as file:
-                    query = file.read()
+                # Provjera postojanja korisnika s istim emailom
+                check_email_query = "SELECT * FROM korisnik WHERE email = %s"
+                g.cursor.execute(check_email_query, (user_data['email'],))
+                existing_email = g.cursor.fetchone()
 
-                # Izvršavanje SQL upita s podacima korisnika
-                g.cursor.execute(query, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], user_data['lozinka'], user_data['email']))
-                g.connection.commit()
-                response.data = 'Uspješno ste registrirali korisnika'
-                response.status_code = 201
+                # Provjera postojanja korisnika s istim korisničkim imenom
+                check_username_query = "SELECT * FROM korisnik WHERE korisnicko_ime = %s"
+                g.cursor.execute(check_username_query, (user_data['korisnicko_ime'],))
+                existing_username = g.cursor.fetchone()
+
+                if existing_email:
+                    response.data = 'Korisnik s tom email adresom već postoji'
+                    response.status_code = 400
+                elif existing_username:
+                    response.data = 'Korisnik s tim korisničkim imenom već postoji'
+                    response.status_code = 400
+                else:
+                    # Čitanje sadržaja SQL datoteke
+                    with app.open_resource('templates/registerUser.sql', mode='r') as file:
+                        query = file.read()
+
+                    # Izvršavanje SQL upita s podacima korisnika
+                    g.cursor.execute(query, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], user_data['lozinka'], user_data['email']))
+                    g.connection.commit()
+                    response.data = 'Uspješno ste registrirali korisnika'
+                    response.status_code = 201
             except Exception as e:
                 response.data = f'Greška prilikom registracije: {str(e)}'
                 response.status_code = 500
@@ -63,6 +80,8 @@ def register():
         response.status_code = 400
     
     return response
+
+
 
 
 
