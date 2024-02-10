@@ -1,1 +1,2 @@
-INSERT INTO users (ime, prezime, korisnicko_ime, lozinka, email) VALUES (:ime, :prezime, :korisnicko_ime, :lozinka, :email);
+INSERT INTO korisnik (ime, prezime, korisnicko_ime, password, email) VALUES (%s, %s, %s, %s, %s);
+

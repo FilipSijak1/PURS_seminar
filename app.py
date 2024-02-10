@@ -33,45 +33,40 @@ def login_page():
 def register():
     if request.method == 'GET':
         return render_template('registration.html', title='Registracija')
-    elif request.method == 'POST':
-        response = make_response()
-        user_data = request.json  # Očekuje se JSON podaci s informacijama o korisniku
+    
+    response = make_response()
+    user_data = request.json  # Čitanje JSON podataka iz zahtjeva
 
-        # Provjerava se jesu li svi potrebni podaci prisutni
-        required_fields = ['ime', 'prezime', 'korisnicko_ime', 'lozinka', 'ponovljena_lozinka', 'email']
-        if all(field in user_data for field in required_fields):
-            # Provjera postojanja korisnika s istim korisničkim imenom
-            g.cursor.execute(render_template('checkUsername.sql', korisnicko_ime=user_data['korisnicko_ime']))
-            existing_username = g.cursor.fetchone()
+    # Provjerava se jesu li svi potrebni podaci prisutni
+    required_fields = ['ime', 'prezime', 'korisnicko_ime', 'lozinka', 'ponovljena_lozinka', 'email']
+    if all(field in user_data for field in required_fields):
+        # Provjera podudaranja lozinki
+        if user_data['lozinka'] != user_data['ponovljena_lozinka']:
+            response.data = 'Lozinke se ne podudaraju'
+            response.status_code = 400
+        else:
+            try:
+                # Čitanje sadržaja SQL datoteke
+                with app.open_resource('templates/registerUser.sql', mode='r') as file:
+                    query = file.read()
 
-            # Provjera postojanja korisnika s istom email adresom
-            g.cursor.execute(render_template('checkEmail.sql', email=user_data['email']))
-            existing_email = g.cursor.fetchone()
-
-            if existing_username:
-                response.data = 'Korisnik s tim korisničkim imenom već postoji'
-                response.status_code = 400
-            elif existing_email:
-                response.data = 'Korisnik s tom email adresom već postoji'
-                response.status_code = 400
-            elif user_data['lozinka'] != user_data['ponovljena_lozinka']:
-                response.data = 'Lozinke se ne podudaraju'
-                response.status_code = 400
-            else:
-                query = render_template('registerUser.sql',
-                                        ime=user_data['ime'],
-                                        prezime=user_data['prezime'],
-                                        korisnicko_ime=user_data['korisnicko_ime'],
-                                        lozinka=user_data['lozinka'],
-                                        email=user_data['email'])
-                g.cursor.execute(query)
+                # Izvršavanje SQL upita s podacima korisnika
+                g.cursor.execute(query, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], user_data['lozinka'], user_data['email']))
+                g.connection.commit()
                 response.data = 'Uspješno ste registrirali korisnika'
                 response.status_code = 201
-        else:
-            response.data = 'Nisu pruženi svi potrebni podaci'
-            response.status_code = 400
-        
-        return response
+            except Exception as e:
+                response.data = f'Greška prilikom registracije: {str(e)}'
+                response.status_code = 500
+    else:
+        response.data = 'Nisu pruženi svi potrebni podaci'
+        response.status_code = 400
+    
+    return response
+
+
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)

@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="wrapper">
-        <form action="/register" method="POST">
+        <form id="registrationForm">
             <h1>Registracija</h1>
             <div class="input-box">
                 <input type="text" name="ime" placeholder="Ime" required>
@@ -28,11 +28,36 @@
             <div class="input-box">
                 <input type="password" name="ponovljena_lozinka" placeholder="Ponovite lozinku" required>
             </div>
-            <button type="submit" class="btn">Registracija</button>
+            <button type="button" onclick="submitForm()" class="btn">Registracija</button>
             <div class="login-link">
                <p>Već ste registrirani? <a href="/login" class="btn">Prijava</a></p>
             </div>
         </form>
     </div>
+
+    <script>
+        function submitForm() {
+            var form = document.getElementById("registrationForm");
+            var formData = new FormData(form);
+            var jsonObject = {};
+            formData.forEach(function(value, key){
+                jsonObject[key] = value;
+            });
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/register");
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onload = function() {
+                if (xhr.status === 201) {
+                    alert(xhr.responseText);
+                    // Optionally redirect or do something else upon successful registration
+                } else {
+                    alert("Neuspješna registracija: " + xhr.responseText);
+                }
+            };
+            xhr.send(JSON.stringify(jsonObject));
+        }
+    </script>
 </body>
 </html>
+
