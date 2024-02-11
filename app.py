@@ -1,6 +1,7 @@
-from flask import Flask, request, redirect, url_for, render_template, session, make_response, jsonify
+from flask import Flask, request, redirect, url_for, render_template, session, make_response, url_for
 from flask import g
 import MySQLdb
+from hashlib import sha256
 
 
 
@@ -26,7 +27,12 @@ def index():
 
 @app.get('/login')
 def login_page():
-    response = render_template('login.html', title='Login stranica'), 200
+    # Provjerava je li korisnik već prijavljen
+    if 'username' in session:
+        return redirect(url_for('index'))
+    
+    # Ako nije prijavljen, prikaži stranicu za prijavu
+    response = render_template('login.html', title='Login stranica')
     return response
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -81,11 +87,28 @@ def register():
     
     return response
 
+@app.post('/login')
+def login():
+    response = make_response()
+    username = request.form.get('korisnicko_ime')
+    password = request.form.get('lozinka')
 
+    try:
+        query = "SELECT * FROM korisnik WHERE korisnicko_ime = %s AND password = UNHEX(SHA2(%s, 256))"
+        g.cursor.execute(query, (username, password))
+        user = g.cursor.fetchone()
 
-
-
-
+        if user:
+            session['username'] = user[3]  # Save username in session
+            return redirect(url_for('index'))
+        else:
+            response.data = 'Pogrešno korisničko ime ili lozinka'
+            response.status_code = 401
+    except Exception as e:
+        response.data = f'Greška prilikom prijave: {str(e)}'
+        response.status_code = 500
+    
+    return response
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
