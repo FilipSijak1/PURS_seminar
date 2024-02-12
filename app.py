@@ -25,6 +25,11 @@ def index():
     response = render_template('index.html')
     return response, 200
 
+@app.get('/logout')
+def logout():
+    session.pop('username')
+    return redirect(url_for('login_page'))
+
 @app.get('/login')
 def login_page():
     # Provjerava je li korisnik već prijavljen
