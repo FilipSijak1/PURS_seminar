@@ -8,23 +8,22 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
+    <header>
     <!----navigation-->
     <nav>
         <a href="#" class="logo">BotaniCare</a>
         <div class="bx bx-menu" id="menu-icon"></div>
         <ul class="navlist">
-            <li><a href="#">Naslovnica</a></li>
-            <li><a href="#">Unos sustava</a></li>
-            <li><a href="#">Analitika</a></li>
+            <li><a href="#naslovnica" class="active">Naslovnica</a></li>
+            <li><a href="#unos_sustava">Unos sustava</a></li>
+            <li><a href="#analitika">Analitika</a></li>
         </ul>
         <a href="/logout" class="btn">Odjava</a>
     </nav>
-    <!----hero-->
-    <section class="hero">
-        <div class="main-text">
-            <h1>Responsice Navbar</h1>
-        </div>
-    </section>
+    </header>
+    <section id="naslovnica">Naslovnica</section>
+    <section id="unos_sustava">Unos sustava</section>
+    <section id="analitika">Analitika</section>
     <script src="/static/script.js"></script>
 </body>
 </html>
