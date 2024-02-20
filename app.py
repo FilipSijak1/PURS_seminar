@@ -104,7 +104,8 @@ def login():
         user = g.cursor.fetchone()
 
         if user:
-            session['username'] = user[3]  # Save username in session
+            session['username'] = user[3] # Save username in session
+            session['user_id'] = user[0] 
             return redirect(url_for('index'))
         else:
             response.data = 'Pogrešno korisničko ime ili lozinka'
@@ -115,5 +116,53 @@ def login():
     
     return response
 
+@app.post('/save_location')
+def save_location():
+    response = make_response()
+    location_data = request.json
+
+    try:
+        # Brišemo prethodnu lokaciju iz baze podataka ako postoji
+        delete_query = "DELETE FROM locations WHERE user_id = %s"
+        g.cursor.execute(delete_query, (session['user_id'],))
+
+        # Unosimo novu lokaciju u bazu podataka
+        insert_query = "INSERT INTO locations (user_id, location) VALUES (%s, %s)"
+        g.cursor.execute(insert_query, (session['user_id'], location_data['Lokacija']))
+        g.connection.commit()
+
+        response.data = 'Uspješno spremljena nova lokacija'
+        response.status_code = 201
+    except Exception as e:
+        response.data = f'Greška prilikom spremanja lokacije: {str(e)}'
+        response.status_code = 500
+    
+    return response
+
+@app.route('/update_weather', methods=['POST'])
+def update_weather():
+    response = make_response()
+    weather_data = request.json
+    
+    # Ovdje možete izvršiti bilo kakvu željenu obradu podataka o vremenskoj prognozi
+    # Na primjer, možete ih spremiti u bazu podataka, poslati na daljnju analizu itd.
+
+    # Primjer spremanja podataka u bazu podataka:
+    try:
+        # Ovdje biste izvršili SQL upit za spremanje podataka o vremenskoj prognozi
+        # Pretpostavljamo da imate bazu podataka već postavljenu
+        # Na primjer, začasno ćemo ispisati podatke u konzoli
+        print(weather_data)
+        
+        response.data = 'Podaci o vremenskoj prognozi su uspješno ažurirani'
+        response.status_code = 200
+    except Exception as e:
+        response.data = f'Greška prilikom ažuriranja podataka o vremenskoj prognozi: {str(e)}'
+        response.status_code = 500
+    
+    return response
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
+

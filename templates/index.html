@@ -15,14 +15,21 @@
         <div class="bx bx-menu" id="menu-icon"></div>
         <ul class="navlist">
             <li><a href="#naslovnica" class="active">Naslovnica</a></li>
-            <li><a href="#unos_sustava">Unos sustava</a></li>
+            <li><a href="#vremenska_prognoza">Vremenska prognoza</a></li>
             <li><a href="#analitika">Analitika</a></li>
         </ul>
         <a href="/logout" class="btn">Odjava</a>
     </nav>
     </header>
     <section id="naslovnica">Naslovnica</section>
-    <section id="unos_sustava">Unos sustava</section>
+    <section id="vremenska_prognoza">
+        <form id="locationForm">
+        <div class="input-box">
+            <input type="text" placeholder="Lokacija" name="Lokacija" required> 
+        </div>
+        <button type="button" onclick="submitForm()" class="btn">Potvrda lokacije</button>
+        </form>
+    </section>
     <section id="analitika">Analitika</section>
     <script src="/static/script.js"></script>
 </body>
