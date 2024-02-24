@@ -1,17 +1,39 @@
-from flask import Flask, request, redirect, url_for, render_template, session, make_response, url_for
+from flask import Flask, request, redirect, url_for, render_template, session, make_response, url_for, jsonify
 from flask import g
 import MySQLdb
 from hashlib import sha256
-
-
+import requests  # Dodali smo import za requests biblioteku
 
 app = Flask("app")
-app.secret_key = '_5#y2L"F4Q8z-n-xec]/'
+app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
+
+# Definiramo funkciju fetchWeatherForSavedLocation
+def fetchWeatherForSavedLocation():
+    try:
+        # Dohvati spremljenu lokaciju iz baze podataka
+        query = "SELECT location FROM locations WHERE user_id = %s"
+        g.cursor.execute(query, (session['user_id'],))
+        location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
+
+        APIKey = 'f48314147c7960704569a1010beefbdb'
+        fetch_url = f"https://api.openweathermap.org/data/2.5/weather?q={location}&units=metric&appid={APIKey}"
+        
+        # Dohvati podatke o vremenskoj prognozi za spremljenu lokaciju
+        response = requests.get(fetch_url)
+        weather_data = response.json()
+
+        # Obrada podataka o vremenskoj prognozi
+        # Ovdje možete dodati daljnju obradu podataka ili spremanje u bazu podataka
+
+        return weather_data
+    except Exception as e:
+        print(f'Greška prilikom dohvaćanja vremenskih podataka: {str(e)}')
+        return None
 
 @app.before_request
 def before_request_func():
-    g.connection = MySQLdb.connect(host = "localhost", user = "app",
-                                   passwd = "1234", db = "app")
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                                   passwd="1234", db="app")
     g.cursor = g.connection.cursor()
     if request.path.startswith('/static'):
         return  # Skip the login check for static files
@@ -106,6 +128,10 @@ def login():
         if user:
             session['username'] = user[3] # Save username in session
             session['user_id'] = user[0] 
+            
+            # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
+            fetchWeatherForSavedLocation()
+
             return redirect(url_for('index'))
         else:
             response.data = 'Pogrešno korisničko ime ili lozinka'
@@ -128,7 +154,7 @@ def save_location():
 
         # Unosimo novu lokaciju u bazu podataka
         insert_query = "INSERT INTO locations (user_id, location) VALUES (%s, %s)"
-        g.cursor.execute(insert_query, (session['user_id'], location_data['Lokacija']))
+        g.cursor.execute(insert_query, (session['user_id'], location_data['location']))
         g.connection.commit()
 
         response.data = 'Uspješno spremljena nova lokacija'
@@ -142,27 +168,42 @@ def save_location():
 @app.route('/update_weather', methods=['POST'])
 def update_weather():
     response = make_response()
-    weather_data = request.json
-    
-    # Ovdje možete izvršiti bilo kakvu željenu obradu podataka o vremenskoj prognozi
-    # Na primjer, možete ih spremiti u bazu podataka, poslati na daljnju analizu itd.
+    weather_data = fetchWeatherForSavedLocation()  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
 
-    # Primjer spremanja podataka u bazu podataka:
     try:
-        # Ovdje biste izvršili SQL upit za spremanje podataka o vremenskoj prognozi
-        # Pretpostavljamo da imate bazu podataka već postavljenu
-        # Na primjer, začasno ćemo ispisati podatke u konzoli
-        print(weather_data)
-        
-        response.data = 'Podaci o vremenskoj prognozi su uspješno ažurirani'
-        response.status_code = 200
+        # Ovdje možete izvršiti bilo kakvu željenu obradu podataka o vremenskoj prognozi
+        # Na primjer, možete ih spremiti u bazu podataka, poslati na daljnju analizu itd.
+
+        # Primjer spremanja podataka u bazu podataka:
+        if weather_data:
+            # Ovdje biste izvršili SQL upit za spremanje podataka o vremenskoj prognozi
+            # Pretpostavljamo da imate bazu podataka već postavljenu
+            # Na primjer, začasno ćemo ispisati podatke u konzoli
+            print(weather_data)
+            
+            response.data = 'Podaci o vremenskoj prognozi su uspješno ažurirani'
+            response.status_code = 200
+        else:
+            response.data = 'Podaci o vremenskoj prognozi nisu dostupni'
+            response.status_code = 404
     except Exception as e:
         response.data = f'Greška prilikom ažuriranja podataka o vremenskoj prognozi: {str(e)}'
         response.status_code = 500
     
     return response
 
+@app.route('/get_saved_location', methods=['GET'])
+def get_saved_location():
+    try:
+        # Dohvati spremljenu lokaciju iz baze podataka
+        query = "SELECT location FROM locations WHERE user_id = %s"
+        g.cursor.execute(query, (session['user_id'],))
+        location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
+
+        return jsonify({'location': location}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
-

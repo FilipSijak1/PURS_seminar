@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>aplikacija</title>
+    <title>BotaniCare</title>
     <link href="{{ url_for('static', filename='index.css') }}" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.io') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="static/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="static/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
 </head>
 <body>
     <header>
@@ -23,14 +28,37 @@
     </header>
     <section id="naslovnica">Naslovnica</section>
     <section id="vremenska_prognoza">
-        <form id="locationForm">
-        <div class="input-box">
-            <input type="text" placeholder="Lokacija" name="Lokacija" required> 
+        <div class="container">
+            <form id="locationForm">
+                <div class="search-box">
+                <i class="bx bxs-map"></i>
+                <input type="text" placeholder="Unesite lokaciju" name="Lokacija" required>
+                <button type="submit" class="bx bx-search"></button> <!-- changed type to submit -->
+                </div>
+            </form>
+            <div class="weather-box">
+                <div class="box">
+                    <div class="info-weather">
+                        <div class="weather">
+                            <h2 class="location">Lokacija</h2> <!-- New line to display location -->
+                            <img src="/static/oblak.png" class="weather-icon"> <!-- added class for weather icon -->
+                            <p class="temperature">16<span>°C</span></p>
+                            <p class="description">Oblačno</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button type="button" onclick="submitForm()" class="btn">Potvrda lokacije</button>
-        </form>
     </section>
     <section id="analitika">Analitika</section>
     <script src="/static/script.js"></script>
+
+    <script>
+        // Ova skripta će automatski pozvati funkciju fetchWeatherForSavedLocation() nakon što se stranica učita
+        window.addEventListener('load', function() {
+            fetchWeatherForSavedLocation();
+        });
+    </script>
 </body>
 </html>
+

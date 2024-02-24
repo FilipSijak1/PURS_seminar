@@ -104,47 +104,88 @@ section:nth-child(odd) {
    background: #025825;
 }
 
-#vremenska_prognoza {
+.container {
    position: relative;
+   width: 400px;
+   height: 450px;
+   background: #231709;
+   justify-content: center;
+   align-items: center;
+   border-radius: 16px;
+   padding: 20px;
 }
 
-#locationForm {
-   position: absolute;
-   top: 120px;
-   left: 20px;
-}
-
-.input-box,
-.btn {
-   margin: 5px 0;
-}
-
-
-.section .input-box {
+.search-box {
    position: relative;
    width: 100%;
-   height: 50px;
-   margin: 30px 0;
+   height: 55px;
+   background: #231709;
+   display: flex;
+   align-items: center;
 }
 
-.input-box input {
-      width: 100%;
-      height: 100;
-      background: transparent;
-      border: none;
-      outline: none;
-      border: 2px solid rgb(255, 255, 255);
-      border-radius: 40px;
-      font-size: 16px;
-      color: #ffffff;
-      padding: 20px 45px 20px 20px;
+.search-box i {
+   position: absolute;
+   left: 10px;
+   font-size: 28px;
 }
 
-
-
-.input-box input::placeholder {
-   color: rgb(255,255,255);
+.search-box input {
+   position: absolute;
+   width: 100%;
+   height: 100%;
+   background: transparent;
+   border: 2px solid rgba(255, 255, 255, .2);
+   border-radius: 10px;
+   font-size: 22px;
+   color: #fff;
+   font-weight: 500;
+   text-transform: uppercase;
+   padding: 0 48px 0 42px;
 }
+
+.search-box input::placeholder {
+   color: #fff;
+   text-transform: capitalize;
+}
+
+.search-box button {
+   position: absolute;
+   right: 0;
+   width: 40px;
+   height: 100%;
+   background: transparent;
+   border: none;
+   outline: none;
+   font-size: 28px;
+   color: #fff;
+   padding: 0 40px 0 5px;
+   cursor: pointer;
+}
+
+.weather-box {
+   text-align: center;
+   margin: 40px 0;
+}
+
+.weather-box img {
+   width: 50%;
+}
+
+.weather-box .temperature {
+   position: relative;
+   font-size: 64px;
+   line-height: 1;
+   font-weight: 700;
+}
+
+.weather-box .location {
+   font-size: 24px;
+   font-weight: 500;
+   margin-bottom: 10px;
+   
+}
+
 
 
  @media (max-width: 1350px) {

@@ -1,62 +1,114 @@
-function submitForm() {
-    var form = document.getElementById("locationForm");
-    var formData = new FormData(form);
-    var location = formData.get("Lokacija");
+const locationForm = document.getElementById('locationForm');
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/save_location");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onload = function() {
-        if (xhr.status === 201) {
-            alert(xhr.responseText);
-            fetchWeatherPeriodically(location); // Pozivamo funkciju za automatsko dohvaćanje vremenskih podataka
-        } else {
-            alert("Neuspješan unos lokacije: " + xhr.responseText);
+locationForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const APIKey = 'f48314147c7960704569a1010beefbdb';
+    const city = document.querySelector('.search-box input').value;
+
+    if (city === '')
+        return;
+
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${APIKey}`)
+    .then(response => response.json())
+    .then(json => {
+        console.log('Odgovor primljen:', json);
+        console.log(json.weather[0].main);
+        const image = document.querySelector('.weather-box .weather-icon');
+        const temperature = document.querySelector('.weather-box .temperature');
+        const description = document.querySelector('.weather-box .description');
+        const location = document.querySelector('.weather-box .location'); // New line to select location element
+
+        switch (json.weather[0].main) {
+            case 'Clear':
+                image.src = '/static/sunce.png';
+                description.textContent = 'Sunčano';
+                break;
+
+            case 'Rain':
+                image.src = '/static/kisa.png';
+                description.textContent = 'Kišovito';
+                break;
+
+            case 'Clouds':
+                image.src = '/static/oblak.png';
+                description.textContent = 'Oblačno';
+                break;
+
+            default:
+                image.src = '/static/oblak.png';
+                description.textContent = 'Nepoznato';
         }
-    };
-    xhr.send(JSON.stringify({ "Lokacija": location }));
-}
 
-function fetchWeatherPeriodically(location) {
-    getWeather(location); // Pozivamo funkciju za dohvaćanje vremenskih podataka
-    setInterval(function() {
-        getWeather(location); // Pozivamo funkciju za dohvaćanje vremenskih podataka svakih sat vremena
-    }, 3600000); // 3600000 milisekundi = 1 sat
-}
+        temperature.innerHTML = `${Math.round(json.main.temp)}<span>°C</span>`;
+        location.textContent = city.charAt(0).toUpperCase() + city.slice(1); // Set the location with first letter capitalized
+    });
+});
 
-function getWeather(location) {
-    var apiKey = 'f48314147c7960704569a1010beefbdb';
-    var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + location + '&appid=' + apiKey;
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.onload = function () {
-        if (xhr.status === 200) {
-            var weatherData = JSON.parse(xhr.responseText);
-            console.log(weatherData); // Ispisujemo podatke o vremenskoj prognozi u konzoli
-
-            // Pozivamo funkciju za slanje podataka o vremenskoj prognozi na Flask aplikaciju
-            sendWeatherDataToFlask(weatherData);
+function saveLocation(location) {
+    fetch('/save_location', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 'location': location })
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('Lokacija uspješno spremljena');
         } else {
-            console.error('Neuspješan zahtjev. Status: ' + xhr.status);
+            console.error('Greška prilikom spremanja lokacije:', response.statusText);
         }
-    };
-    xhr.send();
+    })
+    .catch(error => console.error('Greška prilikom slanja zahtjeva:', error));
 }
 
-function sendWeatherDataToFlask(weatherData) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/update_weather");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            console.log(xhr.responseText);
-        } else {
-            console.error("Neuspješno ažuriranje vremenskih podataka: " + xhr.responseText);
-        }
-    };
-    xhr.send(JSON.stringify(weatherData));
+function fetchWeatherForSavedLocation() {
+    fetch('/get_saved_location')
+    .then(response => response.json())
+    .then(data => {
+        const savedLocation = data.location;
+        const APIKey = 'f48314147c7960704569a1010beefbdb';
+
+        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${savedLocation}&units=metric&appid=${APIKey}`)
+        .then(response => response.json())
+        .then(json => {
+            console.log('Odgovor primljen:', json);
+            console.log(json.weather[0].main);
+            const image = document.querySelector('.weather-box .weather-icon');
+            const temperature = document.querySelector('.weather-box .temperature');
+            const description = document.querySelector('.weather-box .description');
+            const location = document.querySelector('.weather-box .location'); // New line to select location element
+
+            switch (json.weather[0].main) {
+                case 'Clear':
+                    image.src = '/static/sunce.png';
+                    description.textContent = 'Sunčano';
+                    break;
+
+                case 'Rain':
+                    image.src = '/static/kisa.png';
+                    description.textContent = 'Kišovito';
+                    break;
+
+                case 'Clouds':
+                    image.src = '/static/oblak.png';
+                    description.textContent = 'Oblačno';
+                    break;
+
+                default:
+                    image.src = '/static/oblak.png';
+                    description.textContent = 'Nepoznato';
+            }
+
+            temperature.innerHTML = `${Math.round(json.main.temp)}<span>°C</span>`;
+            location.textContent = savedLocation.charAt(0).toUpperCase() + savedLocation.slice(1); // Set the location with first letter capitalized
+        })
+        .catch(error => console.error('Greška prilikom dohvaćanja vremenskih podataka:', error));
+    })
+    .catch(error => console.error('Greška prilikom dohvaćanja spremljene lokacije:', error));
 }
+
+setInterval(fetchWeatherForSavedLocation, 3600000); // 3600000 milisekundi = 1 sat
 
 let menu = document.querySelector('#menu-icon');
 let navlist = document.querySelector('.navlist');
