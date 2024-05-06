@@ -41,6 +41,9 @@ locationForm.addEventListener('submit', (event) => {
 
         temperature.innerHTML = `${Math.round(json.main.temp)}<span>°C</span>`;
         location.textContent = city.charAt(0).toUpperCase() + city.slice(1); // Set the location with first letter capitalized
+
+        // Spremi lokaciju u bazu podataka nakon što dobijemo odgovor o vremenu
+        saveLocation(city);
     });
 });
 
@@ -73,7 +76,6 @@ function fetchWeatherForSavedLocation() {
         .then(response => response.json())
         .then(json => {
             console.log('Odgovor primljen:', json);
-            console.log(json.weather[0].main);
             const image = document.querySelector('.weather-box .weather-icon');
             const temperature = document.querySelector('.weather-box .temperature');
             const description = document.querySelector('.weather-box .description');
@@ -119,7 +121,6 @@ menu.onclick = () => {
     navlist.classList.toggle('open');
 };
 
-
 // Pretplata na MQTT teme i ažuriranje progresnih traka
 function subscribeToMQTTTopics() {
     // Pretplata na MQTT topic za vlagu
@@ -141,4 +142,5 @@ function subscribeToMQTTTopics() {
 
 // Poziv funkcije za pretplatu na MQTT topice i ažuriranje progresnih traka
 subscribeToMQTTTopics();
+
 
