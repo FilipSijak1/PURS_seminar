@@ -3,6 +3,8 @@ from flask import g
 import MySQLdb
 from hashlib import sha256
 import requests  # Dodali smo import za requests biblioteku
+import paho.mqtt.publish as publish
+import json
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'

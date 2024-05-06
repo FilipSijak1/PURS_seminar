@@ -236,3 +236,57 @@ section:nth-child(odd) {
       top: 100%;
    } 
  }
+
+
+/* Adjust the size and positioning of the progress bars */
+#naslovnica {
+   display: flex;
+   justify-content: space-between; /* Distribute items to the start and end of the container */
+   padding: 20px; /* Add padding to the section */
+   background-color: #025825; /* Set background color of the section */
+ }
+ 
+ .progress-container {
+   width: 45%; /* Set width of the progress containers */
+ }
+ 
+ .progress-label {
+   font-weight: bold;
+   margin-bottom: 10px; /* Increased margin below progress labels */
+ }
+ 
+ .progress {
+   position: relative;
+   width: 100%; /* Adjusted width of the progress bars */
+   height: 200px; /* Increased height of the progress bars */
+   border-radius: 10px; /* Adjusted border radius */
+   background: #f0f0f0;
+ }
+ 
+ .progress-bar {
+   background-color: #4CAF50;
+   width: 0%;
+   height: 30px;
+   display: flex;
+   align-items: center; /* Centriraj tekstualnu vrijednost vertikalno */
+   justify-content: center; /* Centriraj tekstualnu vrijednost horizontalno */
+   position: relative;
+}
+
+.progress-value {
+   position: absolute;
+   left: 50%; /* Centriraj tekstualnu vrijednost unutar progresne trake */
+   transform: translateX(-50%); /* Centriraj tekstualnu vrijednost unutar progresne trake */
+   color: rgb(8, 8, 8);
+}
+
+ 
+ /* Set the progress bar value dynamically */
+ #humidity-progress {
+   --value: 50%; /* Example value, replace with actual value */
+ }
+ 
+ #water-level-progress {
+   --value: 75%; /* Example value, replace with actual value */
+ }
+ 

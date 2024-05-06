@@ -118,3 +118,27 @@ menu.onclick = () => {
     menu.classList.toggle('bx-x');
     navlist.classList.toggle('open');
 };
+
+
+// Pretplata na MQTT teme i ažuriranje progresnih traka
+function subscribeToMQTTTopics() {
+    // Pretplata na MQTT topic za vlagu
+    // Ovdje zamijenite 'humidity-topic' sa stvarnim imenom MQTT topica za vlagu
+    // i 'water-level-topic' sa stvarnim imenom MQTT topica za razinu vode
+    const humidityTopic = 'humidity-topic';
+    const waterLevelTopic = 'water-level-topic';
+
+    // Simulacija pretplate na MQTT topice (možete zamijeniti s pravim MQTT klijentom)
+    setInterval(() => {
+        // Generiranje slučajnih vrijednosti za vlagu i razinu vode (simulacija primanja podataka s MQTT topica)
+        const humidityValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za vlagu
+        const waterLevelValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za razinu vode
+
+        // Ažuriranje progresnih traka s novim podacima
+        updateProgressBars(humidityValue, waterLevelValue);
+    }, 5000); // Interval od 5 sekundi (možete prilagoditi prema potrebi)
+}
+
+// Poziv funkcije za pretplatu na MQTT topice i ažuriranje progresnih traka
+subscribeToMQTTTopics();
+
