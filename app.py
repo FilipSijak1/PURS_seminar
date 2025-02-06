@@ -6,42 +6,13 @@ import requests  # Dodali smo import za requests biblioteku
 import paho.mqtt.publish as publish
 import json
 from database.queries import LOGIN_QUERY, REGISTER_QUERY, SAVE_LOCATION_QUERY, DELETE_LOCATION_QUERY, GET_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY
-import logging
-from logging.handlers import TimedRotatingFileHandler
-import os
-from datetime import datetime
-import coloredlogs
+from logging_config import setup_logging  # Importirajte funkciju za postavljanje logiranja
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 
-# Ensure the logs directory exists
-logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
-
-# Set up logging for app
-app_log_file_path = os.path.join(logs_dir, f'app_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
-app_handler = TimedRotatingFileHandler(app_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
-app_handler.setLevel(logging.INFO)
-app_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-app_handler.setFormatter(app_formatter)
-app.logger.addHandler(app_handler)
-app.logger.setLevel(logging.INFO)  # Ensure the logger level is set
-
-# Set up logging for script.js
-script_log_file_path = os.path.join(logs_dir, f'script_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
-script_handler = TimedRotatingFileHandler(script_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
-script_handler.setLevel(logging.INFO)
-script_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-script_handler.setFormatter(script_formatter)
-script_logger = logging.getLogger('scriptLogger')
-script_logger.addHandler(script_handler)
-script_logger.setLevel(logging.INFO)
-
-# Set up coloredlogs
-coloredlogs.install(level='INFO', logger=app.logger, fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-coloredlogs.install(level='INFO', logger=script_logger, fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Postavite logiranje
+app.logger, script_logger = setup_logging()
 
 @app.route('/log_event', methods=['POST'])
 def log_event():
@@ -141,7 +112,12 @@ def register():
     
     response = make_response()
     user_data = request.json  # Čitanje JSON podataka iz zahtjeva
-    app.logger.info(f"Received user data: {user_data}")
+
+    # Kopiramo user_data i uklanjamo lozinke za logiranje
+    log_data = user_data.copy()
+    log_data.pop('lozinka', None)
+    log_data.pop('ponovljena_lozinka', None)
+    app.logger.info(f"Received user data: {log_data}")
 
     # Provjerava se jesu li svi potrebni podaci prisutni
     required_fields = ['ime', 'prezime', 'korisnicko_ime', 'lozinka', 'ponovljena_lozinka', 'email']

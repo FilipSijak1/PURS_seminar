@@ -1,3 +1,0 @@
-2025-02-07 00:11:54,817 - app - INFO - Received location data: {'location': 'kunovec'}
-2025-02-07 00:11:54,822 - app - INFO - Deleted previous location for user_id: 1
-2025-02-07 00:11:54,830 - app - INFO - Saved new location: kunovec for user_id: 1
