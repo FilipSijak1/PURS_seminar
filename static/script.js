@@ -1,3 +1,8 @@
+function closeAlert() {
+    const weatherAlert = document.getElementById('weather-alert');
+    weatherAlert.style.display = 'none';
+}
+
 const locationForm = document.getElementById('locationForm');
 
 locationForm.addEventListener('submit', (event) => {
@@ -18,6 +23,7 @@ locationForm.addEventListener('submit', (event) => {
         const temperature = document.querySelector('.weather-box .temperature');
         const description = document.querySelector('.weather-box .description');
         const location = document.querySelector('.weather-box .location'); // New line to select location element
+        const weatherAlert = document.getElementById('weather-alert'); // Select the weather alert element
 
         const currentTime = json.dt + json.timezone; // Adjust current time with timezone
         const sunrise = json.sys.sunrise + json.timezone; // Adjust sunrise time with timezone
@@ -28,26 +34,31 @@ locationForm.addEventListener('submit', (event) => {
             case 'Clear':
                 image.src = isNight ? '/static/mjesec.png' : '/static/sunce.png';
                 description.textContent = isNight ? 'Noć' : 'Sunčano';
+                weatherAlert.style.display = 'none'; // Hide alert for clear weather
                 break;
 
             case 'Rain':
                 image.src = isNight ? '/static/noc_kisa.png' : '/static/kisa.png';
                 description.textContent = 'Kišovito';
+                weatherAlert.style.display = 'block'; // Show alert for rainy weather
                 break;
 
             case 'Clouds':
                 image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                 description.textContent = 'Oblačno';
+                weatherAlert.style.display = 'block'; // Show alert for cloudy weather
                 break;
 
             case 'Wind':
                 image.src = isNight ? '/static/noc_vjetar.png' : '/static/vjetar.png';
                 description.textContent = 'Vjetrovito';
+                weatherAlert.style.display = 'none'; // Hide alert for windy weather
                 break;
 
             default:
-                image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
+                image.src = isNight ? '/static/weather_unknown.png' : '/static/weather_unknown.png';
                 description.textContent = 'Nepoznato';
+                weatherAlert.style.display = 'none'; // Hide alert for unknown weather
         }
 
         temperature.innerHTML = `${Math.round(json.main.temp)}<span>°C</span>`;
@@ -100,6 +111,7 @@ function fetchWeatherForSavedLocation() {
             const temperature = document.querySelector('.weather-box .temperature');
             const description = document.querySelector('.weather-box .description');
             const location = document.querySelector('.weather-box .location'); // New line to select location element
+            const weatherAlert = document.getElementById('weather-alert'); // Select the weather alert element
 
             const currentTime = json.dt + json.timezone; // Adjust current time with timezone
             const sunrise = json.sys.sunrise + json.timezone; // Adjust sunrise time with timezone
@@ -110,26 +122,31 @@ function fetchWeatherForSavedLocation() {
                 case 'Clear':
                     image.src = isNight ? '/static/mjesec.png' : '/static/sunce.png';
                     description.textContent = isNight ? 'Noć' : 'Sunčano';
+                    weatherAlert.style.display = 'none'; // Hide alert for clear weather
                     break;
 
                 case 'Rain':
                     image.src = isNight ? '/static/noc_kisa.png' : '/static/kisa.png';
                     description.textContent = 'Kišovito';
+                    weatherAlert.style.display = 'block'; // Show alert for rainy weather
                     break;
 
                 case 'Clouds':
                     image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                     description.textContent = 'Oblačno';
+                    weatherAlert.style.display = 'block'; // Show alert for cloudy weather
                     break;
 
                 case 'Wind':
                     image.src = isNight ? '/static/noc_vjetar.png' : '/static/vjetar.png';
                     description.textContent = 'Vjetrovito';
+                    weatherAlert.style.display = 'none'; // Hide alert for windy weather
                     break;
 
                 default:
-                    image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
+                    image.src = isNight ? '/static/weather_unknown.png' : '/static/weather_unknown.png';
                     description.textContent = 'Nepoznato';
+                    weatherAlert.style.display = 'none'; // Hide alert for unknown weather
             }
 
             temperature.innerHTML = `${Math.round(json.main.temp)}<span>°C</span>`;

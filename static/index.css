@@ -289,4 +289,37 @@ section:nth-child(odd) {
  #water-level-progress {
    --value: 75%; /* Example value, replace with actual value */
  }
- 
+
+/* Dodani stilovi za skočnu poruku */
+.weather-alert {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ffcc00;
+    color: #000;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none; /* Skriveno po defaultu */
+}
+
+.weather-alert p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Dodani stilovi za gumb za zatvaranje */
+.weather-alert .close-alert {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+    cursor: pointer;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}

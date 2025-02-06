@@ -41,6 +41,12 @@
                 <span class="progress-value" id="water-level-value">0%</span> <!-- Dodani tekstualni postotak -->
             </div>
         </div>
+
+        <!-- Dodani div za skočnu poruku -->
+        <div id="weather-alert" class="weather-alert" style="display: none;">
+            <p>Automatsko zalijevanje nije moguće zbog trenutnih vremenskih uvjeta (kiša ili oblačno).</p>
+            <button class="close-alert" onclick="closeAlert()">x</button> <!-- Dodani gumb za zatvaranje -->
+        </div>
     </section>
     <section id="vremenska_prognoza">
         <div class="container">
