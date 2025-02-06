@@ -5,29 +5,31 @@ from hashlib import sha256
 import requests  # Dodali smo import za requests biblioteku
 import paho.mqtt.publish as publish
 import json
+from database.queries import LOGIN_QUERY, REGISTER_QUERY, SAVE_LOCATION_QUERY, DELETE_LOCATION_QUERY, GET_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 
-# Definiramo funkciju fetchWeatherForSavedLocation
 def fetchWeatherForSavedLocation():
     try:
-        # Dohvati spremljenu lokaciju iz baze podataka
-        query = "SELECT location FROM locations WHERE user_id = %s"
-        g.cursor.execute(query, (session['user_id'],))
-        location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
+        g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
+        location = g.cursor.fetchone()
+        print(f"Fetched location for user_id: {session['user_id']} - {location}")
+        if location:
+            location = location[0]  # Assume there is only one saved location per user
+            APIKey = 'f48314147c7960704569a1010beefbdb'
+            fetch_url = f"https://api.openweathermap.org/data/2.5/weather?q={location}&units=metric&appid={APIKey}"
+            # Fetch weather data for the saved location
+            response = requests.get(fetch_url)
+            weather_data = response.json()
 
-        APIKey = 'f48314147c7960704569a1010beefbdb'
-        fetch_url = f"https://api.openweathermap.org/data/2.5/weather?q={location}&units=metric&appid={APIKey}"
-        
-        # Dohvati podatke o vremenskoj prognozi za spremljenu lokaciju
-        response = requests.get(fetch_url)
-        weather_data = response.json()
+            # Process weather data
+            # You can add further processing or save it to the database here
 
-        # Obrada podataka o vremenskoj prognozi
-        # Ovdje možete dodati daljnju obradu podataka ili spremanje u bazu podataka
-
-        return weather_data
+            return weather_data
+        else:
+            print("No location found for user.")
+            return None
     except Exception as e:
         print(f'Greška prilikom dohvaćanja vremenskih podataka: {str(e)}')
         return None
@@ -82,13 +84,11 @@ def register():
         else:
             try:
                 # Provjera postojanja korisnika s istim emailom
-                check_email_query = "SELECT * FROM korisnik WHERE email = %s"
-                g.cursor.execute(check_email_query, (user_data['email'],))
+                g.cursor.execute(CHECK_EMAIL_QUERY, (user_data['email'],))
                 existing_email = g.cursor.fetchone()
 
                 # Provjera postojanja korisnika s istim korisničkim imenom
-                check_username_query = "SELECT * FROM korisnik WHERE korisnicko_ime = %s"
-                g.cursor.execute(check_username_query, (user_data['korisnicko_ime'],))
+                g.cursor.execute(CHECK_USERNAME_QUERY, (user_data['korisnicko_ime'],))
                 existing_username = g.cursor.fetchone()
 
                 if existing_email:
@@ -98,12 +98,9 @@ def register():
                     response.data = 'Korisnik s tim korisničkim imenom već postoji'
                     response.status_code = 400
                 else:
-                    # Čitanje sadržaja SQL datoteke
-                    with app.open_resource('templates/registerUser.sql', mode='r') as file:
-                        query = file.read()
-
                     # Izvršavanje SQL upita s podacima korisnika
-                    g.cursor.execute(query, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], user_data['lozinka'], user_data['email']))
+                    hashed_lozinka = sha256(user_data['lozinka'].encode()).hexdigest()
+                    g.cursor.execute(REGISTER_QUERY, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], hashed_lozinka, user_data['email']))
                     g.connection.commit()
                     response.data = 'Uspješno ste registrirali korisnika'
                     response.status_code = 201
@@ -116,19 +113,25 @@ def register():
     
     return response
 
-@app.post('/login')
+@app.route('/login', methods=['POST'])
 def login():
     response = make_response()
     username = request.form.get('korisnicko_ime')
     password = request.form.get('lozinka')
 
     try:
-        query = "SELECT * FROM korisnik WHERE korisnicko_ime = %s AND password = UNHEX(SHA2(%s, 256))"
-        g.cursor.execute(query, (username, password))
+        # Hash the password for comparison
+        hashed_password = sha256(password.encode()).hexdigest()
+        print(f"Executing query: {LOGIN_QUERY} with username: {username} and hashed password: {hashed_password}")
+
+        g.cursor.execute(LOGIN_QUERY, (username, hashed_password))
         user = g.cursor.fetchone()
 
+        # Debugging: Print the result from the database
+        print(f"Query result: {user}")
+
         if user:
-            session['username'] = user[3] # Save username in session
+            session['username'] = user[3]  # Save username in session
             session['user_id'] = user[0] 
             
             # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
@@ -141,23 +144,21 @@ def login():
     except Exception as e:
         response.data = f'Greška prilikom prijave: {str(e)}'
         response.status_code = 500
-    
+
     return response
 
 @app.post('/save_location')
 def save_location():
     response = make_response()
     location_data = request.json
-
     try:
         # Brišemo prethodnu lokaciju iz baze podataka ako postoji
-        delete_query = "DELETE FROM locations WHERE user_id = %s"
-        g.cursor.execute(delete_query, (session['user_id'],))
-
+        g.cursor.execute(DELETE_LOCATION_QUERY, (session['user_id'],))
+        print(f"Deleted previous location for user_id: {session['user_id']}")
         # Unosimo novu lokaciju u bazu podataka
-        insert_query = "INSERT INTO locations (user_id, location) VALUES (%s, %s)"
-        g.cursor.execute(insert_query, (session['user_id'], location_data['location']))
+        g.cursor.execute(SAVE_LOCATION_QUERY, (location_data['location'], session['user_id']))
         g.connection.commit()
+        print(f"Saved new location: {location_data['location']} for user_id: {session['user_id']}")
 
         response.data = 'Uspješno spremljena nova lokacija'
         response.status_code = 201
@@ -198,8 +199,7 @@ def update_weather():
 def get_saved_location():
     try:
         # Dohvati spremljenu lokaciju iz baze podataka
-        query = "SELECT location FROM locations WHERE user_id = %s"
-        g.cursor.execute(query, (session['user_id'],))
+        g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
         location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
 
         return jsonify({'location': location}), 200
