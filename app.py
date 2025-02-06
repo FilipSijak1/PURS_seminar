@@ -7,8 +7,10 @@ import paho.mqtt.publish as publish
 import json
 from database.queries import LOGIN_QUERY, REGISTER_QUERY, SAVE_LOCATION_QUERY, DELETE_LOCATION_QUERY, GET_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 import os
+from datetime import datetime
+import coloredlogs
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
@@ -19,8 +21,8 @@ if not os.path.exists(logs_dir):
     os.makedirs(logs_dir)
 
 # Set up logging for app
-app_log_file_path = os.path.join(logs_dir, 'app.log')
-app_handler = RotatingFileHandler(app_log_file_path, maxBytes=10000, backupCount=1)
+app_log_file_path = os.path.join(logs_dir, f'app_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+app_handler = TimedRotatingFileHandler(app_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
 app_handler.setLevel(logging.INFO)
 app_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 app_handler.setFormatter(app_formatter)
@@ -28,14 +30,18 @@ app.logger.addHandler(app_handler)
 app.logger.setLevel(logging.INFO)  # Ensure the logger level is set
 
 # Set up logging for script.js
-script_log_file_path = os.path.join(logs_dir, 'script.log')
-script_handler = RotatingFileHandler(script_log_file_path, maxBytes=10000, backupCount=1)
+script_log_file_path = os.path.join(logs_dir, f'script_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+script_handler = TimedRotatingFileHandler(script_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
 script_handler.setLevel(logging.INFO)
 script_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 script_handler.setFormatter(script_formatter)
 script_logger = logging.getLogger('scriptLogger')
 script_logger.addHandler(script_handler)
 script_logger.setLevel(logging.INFO)
+
+# Set up coloredlogs
+coloredlogs.install(level='INFO', logger=app.logger, fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+coloredlogs.install(level='INFO', logger=script_logger, fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 @app.route('/log_event', methods=['POST'])
 def log_event():

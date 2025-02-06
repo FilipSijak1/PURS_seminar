@@ -1,0 +1,1 @@
+2025-02-07 00:08:18,775 - app - INFO - Deleted previous location for user_id: 1
