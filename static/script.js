@@ -12,30 +12,41 @@ locationForm.addEventListener('submit', (event) => {
     .then(response => response.json())
     .then(json => {
         console.log('Odgovor primljen:', json);
+        logEvent(`Weather API response: ${JSON.stringify(json)}`);
         console.log(json.weather[0].main);
         const image = document.querySelector('.weather-box .weather-icon');
         const temperature = document.querySelector('.weather-box .temperature');
         const description = document.querySelector('.weather-box .description');
         const location = document.querySelector('.weather-box .location'); // New line to select location element
 
+        const currentTime = json.dt + json.timezone; // Adjust current time with timezone
+        const sunrise = json.sys.sunrise + json.timezone; // Adjust sunrise time with timezone
+        const sunset = json.sys.sunset + json.timezone; // Adjust sunset time with timezone
+        const isNight = currentTime < sunrise || currentTime > sunset;
+
         switch (json.weather[0].main) {
             case 'Clear':
-                image.src = '/static/sunce.png';
-                description.textContent = 'Sunčano';
+                image.src = isNight ? '/static/mjesec.png' : '/static/sunce.png';
+                description.textContent = isNight ? 'Noć' : 'Sunčano';
                 break;
 
             case 'Rain':
-                image.src = '/static/kisa.png';
+                image.src = isNight ? '/static/noc_kisa.png' : '/static/kisa.png';
                 description.textContent = 'Kišovito';
                 break;
 
             case 'Clouds':
-                image.src = '/static/oblak.png';
+                image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                 description.textContent = 'Oblačno';
                 break;
 
+            case 'Wind':
+                image.src = isNight ? '/static/noc_vjetar.png' : '/static/vjetar.png';
+                description.textContent = 'Vjetrovito';
+                break;
+
             default:
-                image.src = '/static/oblak.png';
+                image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                 description.textContent = 'Nepoznato';
         }
 
@@ -44,6 +55,10 @@ locationForm.addEventListener('submit', (event) => {
 
         // Spremi lokaciju u bazu podataka nakon što dobijemo odgovor o vremenu
         saveLocation(city);
+    })
+    .catch(error => {
+        console.error('Error fetching weather data:', error);
+        logEvent(`Error fetching weather data: ${error}`);
     });
 });
 
@@ -58,11 +73,16 @@ function saveLocation(location) {
     .then(response => {
         if (response.ok) {
             console.log('Lokacija uspješno spremljena');
+            logEvent('Lokacija uspješno spremljena');
         } else {
             console.error('Greška prilikom spremanja lokacije:', response.statusText);
+            logEvent(`Greška prilikom spremanja lokacije: ${response.statusText}`);
         }
     })
-    .catch(error => console.error('Greška prilikom slanja zahtjeva:', error));
+    .catch(error => {
+        console.error('Greška prilikom slanja zahtjeva:', error);
+        logEvent(`Greška prilikom slanja zahtjeva: ${error}`);
+    });
 }
 
 function fetchWeatherForSavedLocation() {
@@ -81,24 +101,34 @@ function fetchWeatherForSavedLocation() {
             const description = document.querySelector('.weather-box .description');
             const location = document.querySelector('.weather-box .location'); // New line to select location element
 
+            const currentTime = json.dt + json.timezone; // Adjust current time with timezone
+            const sunrise = json.sys.sunrise + json.timezone; // Adjust sunrise time with timezone
+            const sunset = json.sys.sunset + json.timezone; // Adjust sunset time with timezone
+            const isNight = currentTime < sunrise || currentTime > sunset;
+
             switch (json.weather[0].main) {
                 case 'Clear':
-                    image.src = '/static/sunce.png';
-                    description.textContent = 'Sunčano';
+                    image.src = isNight ? '/static/mjesec.png' : '/static/sunce.png';
+                    description.textContent = isNight ? 'Noć' : 'Sunčano';
                     break;
 
                 case 'Rain':
-                    image.src = '/static/kisa.png';
+                    image.src = isNight ? '/static/noc_kisa.png' : '/static/kisa.png';
                     description.textContent = 'Kišovito';
                     break;
 
                 case 'Clouds':
-                    image.src = '/static/oblak.png';
+                    image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                     description.textContent = 'Oblačno';
                     break;
 
+                case 'Wind':
+                    image.src = isNight ? '/static/noc_vjetar.png' : '/static/vjetar.png';
+                    description.textContent = 'Vjetrovito';
+                    break;
+
                 default:
-                    image.src = '/static/oblak.png';
+                    image.src = isNight ? '/static/noc_oblak.png' : '/static/oblak.png';
                     description.textContent = 'Nepoznato';
             }
 
@@ -143,4 +173,12 @@ function subscribeToMQTTTopics() {
 // Poziv funkcije za pretplatu na MQTT topice i ažuriranje progresnih traka
 subscribeToMQTTTopics();
 
-
+function logEvent(message) {
+    fetch('/log_event', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: message })
+    });
+}
