@@ -3,13 +3,13 @@ CREATE DATABASE app;
 USE app;
 
 CREATE TABLE korisnik (
-	id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     ime CHAR(50) NOT NULL,
     prezime CHAR(50) NOT NULL,
     korisnicko_ime VARCHAR(50) NOT NULL,
-    password BINARY(32) NOT NULL,
+    password VARCHAR(64) NOT NULL,
     email VARCHAR(50) NOT NULL
-    );
+);
     
 
 CREATE TABLE locations (
@@ -19,13 +19,3 @@ CREATE TABLE locations (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES korisnik(id)
 );
-
-
-DROP USER IF EXISTS app; 
-CREATE USER app@'%' IDENTIFIED BY '1234';
-GRANT SELECT, INSERT, UPDATE, DELETE ON app.* TO app@'%';
-SELECT * FROM mysql.user;
-
-
-SELECT * FROM korisnik;
-SELECT * FROM locations;

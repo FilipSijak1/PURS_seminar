@@ -187,27 +187,35 @@ def login():
     password = request.form.get('lozinka')
 
     try:
-        # Hash the password for comparison
-        hashed_password = sha256(password.encode()).hexdigest()
-        app.logger.info(f"Executing query: {LOGIN_QUERY} with username: {username} and hashed password: {hashed_password}")
-
-        g.cursor.execute(LOGIN_QUERY, (username, hashed_password))
+        # Provjera postojanja korisnika s unesenim korisničkim imenom
+        g.cursor.execute(CHECK_USERNAME_QUERY, (username,))
         user = g.cursor.fetchone()
 
-        # Debugging: Print the result from the database
-        app.logger.info(f"Query result: {user}")
-
         if user:
-            session['username'] = user[3]  # Save username in session
-            session['user_id'] = user[0] 
-            
-            # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
-            fetchWeatherForSavedLocation()
+            # Hash the password for comparison
+            hashed_password = sha256(password.encode()).hexdigest()
+            app.logger.info(f"Executing query: {LOGIN_QUERY} with username: {username} and hashed password: {hashed_password}")
 
-            return redirect(url_for('index'))
+            g.cursor.execute(LOGIN_QUERY, (username, hashed_password))
+            user = g.cursor.fetchone()
+
+            # Debugging: Print the result from the database
+            app.logger.info(f"Query result: {user}")
+
+            if user:
+                session['username'] = user[3]  # Save username in session
+                session['user_id'] = user[0] 
+                
+                # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
+                fetchWeatherForSavedLocation()
+
+                return redirect(url_for('index'))
+            else:
+                response.data = 'Pogrešno korisničko ime ili lozinka'
+                response.status_code = 401
         else:
-            response.data = 'Pogrešno korisničko ime ili lozinka'
-            response.status_code = 401
+            response.data = 'Korisnik ne postoji'
+            response.status_code = 404
     except Exception as e:
         app.logger.error(f"Error during login: {str(e)}")
         response.data = f'Greška prilikom prijave: {str(e)}'

@@ -1,0 +1,135 @@
+2025-02-06 22:22:10,606 - app - ERROR - Exception on /get_saved_location [GET]
+Traceback (most recent call last):
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 865, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1239, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\filip\OneDrive\Desktop\PURS\app.py", line 101, in before_request_func
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\__init__.py", line 121, in Connect
+    return Connection(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\connections.py", line 193, in __init__
+    super().__init__(*args, **kwargs2)
+MySQLdb.OperationalError: (2002, "Can't connect to server on 'localhost' (10061)")
+2025-02-06 23:32:15,566 - app - ERROR - Exception on / [GET]
+Traceback (most recent call last):
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 865, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1239, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\filip\OneDrive\Desktop\PURS\app.py", line 101, in before_request_func
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\__init__.py", line 121, in Connect
+    return Connection(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\connections.py", line 193, in __init__
+    super().__init__(*args, **kwargs2)
+MySQLdb.OperationalError: (1045, "Access denied for user 'app'@'localhost' (using password: YES)")
+2025-02-06 23:32:16,314 - app - ERROR - Exception on /favicon.ico [GET]
+Traceback (most recent call last):
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 865, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1239, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\filip\OneDrive\Desktop\PURS\app.py", line 101, in before_request_func
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\__init__.py", line 121, in Connect
+    return Connection(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\connections.py", line 193, in __init__
+    super().__init__(*args, **kwargs2)
+MySQLdb.OperationalError: (1045, "Access denied for user 'app'@'localhost' (using password: YES)")
+2025-02-06 23:33:23,789 - app - ERROR - Exception on / [GET]
+Traceback (most recent call last):
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 865, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1239, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\filip\OneDrive\Desktop\PURS\app.py", line 101, in before_request_func
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\__init__.py", line 121, in Connect
+    return Connection(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\connections.py", line 193, in __init__
+    super().__init__(*args, **kwargs2)
+MySQLdb.OperationalError: (1045, "Access denied for user 'app'@'localhost' (using password: YES)")
+2025-02-06 23:33:24,502 - app - ERROR - Exception on /favicon.ico [GET]
+Traceback (most recent call last):
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 865, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py", line 1239, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\filip\OneDrive\Desktop\PURS\app.py", line 101, in before_request_func
+    g.connection = MySQLdb.connect(host="localhost", user="app",
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\__init__.py", line 121, in Connect
+    return Connection(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\filip\AppData\Local\Programs\Python\Python311\Lib\site-packages\MySQLdb\connections.py", line 193, in __init__
+    super().__init__(*args, **kwargs2)
+MySQLdb.OperationalError: (1045, "Access denied for user 'app'@'localhost' (using password: YES)")
+2025-02-06 23:35:37,286 - app - INFO - Executing query: 
+SELECT * FROM korisnik WHERE korisnicko_ime = %s AND password = %s
+ with username: Fico and hashed password: 18138372fad4b94533cd4881f03dc6c69296dd897234e0cee83f727e2e6b1f63
+2025-02-06 23:35:37,310 - app - INFO - Query result: None
+2025-02-06 23:39:29,641 - app - INFO - Received user data: {'ime': 'Filip', 'prezime': 'Šijak', 'korisnicko_ime': 'Fico', 'email': 'sijakf3@gmail.com', 'lozinka': 'qwe123', 'ponovljena_lozinka': 'qwe123'}
+2025-02-06 23:39:29,645 - app - INFO - Existing email: None
+2025-02-06 23:39:29,648 - app - INFO - Existing username: None
+2025-02-06 23:39:29,649 - app - INFO - Hashed password: 18138372fad4b94533cd4881f03dc6c69296dd897234e0cee83f727e2e6b1f63
+2025-02-06 23:39:37,363 - app - INFO - Executing query: 
+SELECT * FROM korisnik WHERE korisnicko_ime = %s AND password = %s
+ with username: Fico and hashed password: 18138372fad4b94533cd4881f03dc6c69296dd897234e0cee83f727e2e6b1f63
+2025-02-06 23:39:37,365 - app - INFO - Query result: (1, 'Filip', 'Šijak', 'Fico', '18138372fad4b94533cd4881f03dc6c69296dd897234e0cee83f727e2e6b1f63', 'sijakf3@gmail.com')
+2025-02-06 23:39:37,374 - app - INFO - Fetched location for user_id: 1 - None
+2025-02-06 23:39:37,376 - app - INFO - No location found for user.
+2025-02-06 23:39:43,578 - app - INFO - Received location data: {'location': 'Zagreb'}
+2025-02-06 23:39:43,581 - app - INFO - Deleted previous location for user_id: 1
+2025-02-06 23:39:43,591 - app - INFO - Saved new location: Zagreb for user_id: 1
+2025-02-06 23:40:13,494 - app - INFO - Received location data: {'location': 'Mumbai'}
+2025-02-06 23:40:13,500 - app - INFO - Deleted previous location for user_id: 1
+2025-02-06 23:40:13,513 - app - INFO - Saved new location: Mumbai for user_id: 1
