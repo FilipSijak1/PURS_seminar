@@ -249,11 +249,13 @@ section:nth-child(odd) {
  .progress-container {
    width: 45%; /* Set width of the progress containers */
    margin: 20px 0;
+   position: relative; /* Dodano za pozicioniranje natpisa unutar chartova */
  }
  
  .progress-label {
    font-weight: bold;
    margin-bottom: 10px; /* Increased margin below progress labels */
+   text-align: center; /* Centriranje natpisa */
  }
  
  .progress {
@@ -282,6 +284,7 @@ section:nth-child(odd) {
    position: absolute;
    bottom: 0; /* Početak od dna */
    transition: height 0.5s ease;
+   overflow: hidden; /* Dodano za animaciju gibanja vode */
 }
 
 .progress-value {
@@ -392,6 +395,7 @@ section:nth-child(odd) {
 /* Stilovi za vizualizaciju postotaka */
 .progress-container {
     margin: 20px 0;
+    position: relative; /* Dodano za pozicioniranje natpisa unutar chartova */
 }
 
 .progress {
@@ -410,6 +414,7 @@ section:nth-child(odd) {
     position: absolute;
     bottom: 0; /* Početak od dna */
     transition: height 0.5s ease;
+    overflow: hidden; /* Dodano za animaciju gibanja vode */
 }
 
 .progress-value {
@@ -419,4 +424,5 @@ section:nth-child(odd) {
     transform: translateX(-50%);
     font-size: 16px;
     font-weight: 500;
+
 }

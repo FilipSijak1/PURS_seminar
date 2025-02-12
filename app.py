@@ -2,11 +2,11 @@ from flask import Flask, request, redirect, url_for, render_template, session, m
 from flask import g
 import MySQLdb
 from hashlib import sha256
-import requests  # Dodali smo import za requests biblioteku
-# import paho.mqtt.client as mqtt  # Zakomentirano
+import requests
+import paho.mqtt.client as mqtt
 import json
 from database.queries import LOGIN_QUERY, REGISTER_QUERY, SAVE_LOCATION_QUERY, DELETE_LOCATION_QUERY, GET_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY
-from logging_config import setup_logging  # Importirajte funkciju za postavljanje logiranja
+from logging_config import setup_logging
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
@@ -15,35 +15,35 @@ app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 app.logger, script_logger = setup_logging()
 
 # MQTT setup
-# mqtt_broker = "your_MQTT_broker_address"
-# mqtt_port = 1883
-# mqtt_user = "your_MQTT_username"
-# mqtt_password = "your_MQTT_password"
-# moisture_topic = "sensor/moisture"
-# water_level_topic = "sensor/water_level"
-# watering_status_topic = "control/watering_status"
+mqtt_broker = "your_MQTT_broker_address"
+mqtt_port = 1883
+mqtt_user = "your_MQTT_username"
+mqtt_password = "your_MQTT_password"
+moisture_topic = "sensor/moisture"
+water_level_topic = "sensor/water_level"
+watering_status_topic = "control/watering_status"
 
-# mqtt_client = mqtt.Client()
-# mqtt_client.username_pw_set(mqtt_user, mqtt_password)
+mqtt_client = mqtt.Client()
+mqtt_client.username_pw_set(mqtt_user, mqtt_password)
 
 moisture_level = None
 water_level = None
 
 # MQTT callbacks
-# def on_connect(client, userdata, flags, rc):
-#     app.logger.info(f"Connected to MQTT broker with result code {rc}")
-#     client.subscribe(moisture_topic)
-#     client.subscribe(water_level_topic)
+def on_connect(client, userdata, flags, rc):
+    app.logger.info(f"Connected to MQTT broker with result code {rc}")
+    client.subscribe(moisture_topic)
+    client.subscribe(water_level_topic)
 
 # Callback for received messages
-# def on_message(client, userdata, msg):
-#     global moisture_level, water_level
-#     app.logger.info(f"Received message on topic {msg.topic}: {msg.payload.decode()}")
-#     if msg.topic == moisture_topic:
-#         moisture_level = int(msg.payload.decode())
-#     elif msg.topic == water_level_topic:
-#         water_level = int(msg.payload.decode())
-#     check_conditions_and_publish()
+def on_message(client, userdata, msg):
+    global moisture_level, water_level
+    app.logger.info(f"Received message on topic {msg.topic}: {msg.payload.decode()}")
+    if msg.topic == moisture_topic:
+        moisture_level = int(msg.payload.decode())
+    elif msg.topic == water_level_topic:
+        water_level = int(msg.payload.decode())
+    check_conditions_and_publish()
 
 # Function to check conditions and publish the watering status
 def check_conditions_and_publish():
@@ -52,17 +52,15 @@ def check_conditions_and_publish():
         weather_ok = fetchWeatherForSavedLocation()
         mqtt_ok = checkMQTTDataAndWater()
         if weather_ok and mqtt_ok:
-            # mqtt_client.publish(watering_status_topic, "true")
-            pass
+            mqtt_client.publish(watering_status_topic, "true")
         else:
-            # mqtt_client.publish(watering_status_topic, "false")
-            pass
+            mqtt_client.publish(watering_status_topic, "false")
 
 # MQTT client setup
-# mqtt_client.on_connect = on_connect
-# mqtt_client.on_message = on_message
-# mqtt_client.connect(mqtt_broker, mqtt_port, 60)
-# mqtt_client.loop_start()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+mqtt_client.loop_start()
 
 # Log event endpoint
 @app.route('/log_event', methods=['POST'])
@@ -180,6 +178,11 @@ def login_page():
     # Ako nije prijavljen, prikaži stranicu za prijavu
     response = render_template('login.html', title='Login stranica')
     return response
+
+@app.get('/vremenska_prognoza')
+def vremenska_prognoza():
+    response = render_template('vremenska_prognoza.html')
+    return response, 200
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
