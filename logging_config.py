@@ -11,7 +11,7 @@ def setup_logging():
         os.makedirs(logs_dir)
 
     # Set up logging for app
-    app_log_file_path = os.path.join(logs_dir, f'app_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+    app_log_file_path = os.path.join(logs_dir, f'app_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
     app_handler = TimedRotatingFileHandler(app_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
     app_handler.setLevel(logging.INFO)
     app_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,7 +21,7 @@ def setup_logging():
     app_logger.setLevel(logging.INFO)  # Ensure the logger level is set
 
     # Set up logging for script.js
-    script_log_file_path = os.path.join(logs_dir, f'script_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+    script_log_file_path = os.path.join(logs_dir, f'script_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
     script_handler = TimedRotatingFileHandler(script_log_file_path, when="midnight", interval=1, backupCount=7, encoding='utf-8')
     script_handler.setLevel(logging.INFO)
     script_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
