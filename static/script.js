@@ -168,27 +168,56 @@ menu.onclick = () => {
     navlist.classList.toggle('open');
 };
 
-// Pretplata na MQTT teme i ažuriranje progresnih traka
-function subscribeToMQTTTopics() {
-    // Pretplata na MQTT topic za vlagu
-    // Ovdje zamijenite 'humidity-topic' sa stvarnim imenom MQTT topica za vlagu
-    // i 'water-level-topic' sa stvarnim imenom MQTT topica za razinu vode
-    const humidityTopic = 'humidity-topic';
-    const waterLevelTopic = 'water-level-topic';
+// Funkcija za generiranje dummy podataka i ažuriranje statusa zalijevanja
+function generateDummyData() {
+    const wateringStatus = Math.random() > 0.5 ? 'true' : 'false';
+    console.log('Generated watering status:', wateringStatus); // Dodano za debugiranje
+    updateWateringStatus(wateringStatus);
 
-    // Simulacija pretplate na MQTT topice (možete zamijeniti s pravim MQTT klijentom)
-    setInterval(() => {
-        // Generiranje slučajnih vrijednosti za vlagu i razinu vode (simulacija primanja podataka s MQTT topica)
-        const humidityValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za vlagu
-        const waterLevelValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za razinu vode
-
-        // Ažuriranje progresnih traka s novim podacima
-        updateProgressBars(humidityValue, waterLevelValue);
-    }, 5000); // Interval od 5 sekundi (možete prilagoditi prema potrebi)
+    // Generiranje dummy podataka za vizualizaciju stupaca
+    const humidityValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za vlažnost tla
+    const waterLevelValue = Math.floor(Math.random() * 101); // Generiranje slučajnog broja od 0 do 100 za razinu vode
+    updateProgressBars(humidityValue, waterLevelValue);
+    checkWaterLevel(waterLevelValue); // Provjera razine vode
 }
 
-// Poziv funkcije za pretplatu na MQTT topice i ažuriranje progresnih traka
-subscribeToMQTTTopics();
+// Funkcija za ažuriranje statusa zalijevanja
+function updateWateringStatus(status) {
+    const wateringAlert = document.getElementById('watering-alert');
+    console.log('Updating watering status to:', status); // Dodano za debugiranje
+    if (status === 'true') {
+        wateringAlert.style.display = 'block';
+    } else {
+        wateringAlert.style.display = 'none';
+    }
+}
+
+// Funkcija za ažuriranje progresnih traka
+function updateProgressBars(humidity, waterLevel) {
+    const humidityBar = document.getElementById('humidity-bar');
+    const humidityValueText = document.getElementById('humidity-value');
+    const waterLevelBar = document.getElementById('water-level-bar');
+    const waterLevelValueText = document.getElementById('water-level-value');
+
+    humidityBar.style.height = `${humidity}%`;
+    humidityValueText.textContent = `${humidity}%`;
+
+    waterLevelBar.style.height = `${waterLevel}%`;
+    waterLevelValueText.textContent = `${waterLevel}%`;
+}
+
+// Funkcija za provjeru razine vode i prikaz skočne poruke
+function checkWaterLevel(waterLevel) {
+    const waterAlert = document.getElementById('water-alert');
+    if (waterLevel < 25) {
+        waterAlert.style.display = 'block';
+    } else {
+        waterAlert.style.display = 'none';
+    }
+}
+
+// Generiranje dummy podataka svakih 5 sekundi
+setInterval(generateDummyData, 5000);
 
 function logEvent(message) {
     fetch('/log_event', {

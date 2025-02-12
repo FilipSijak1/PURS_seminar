@@ -47,6 +47,16 @@
             <p>Automatsko zalijevanje nije moguće zbog trenutnih vremenskih uvjeta (kiša ili oblačno).</p>
             <button class="close-alert" onclick="closeAlert()">x</button> <!-- Dodani gumb za zatvaranje -->
         </div>
+
+        <!-- Dodani div za blinkajuću poruku -->
+        <div id="watering-alert" class="watering-alert" style="display: none;">
+            <p>Zalijevanje u tijeku...</p>
+        </div>
+
+        <!-- Dodani div za skočnu poruku za razinu vode -->
+        <div id="water-alert" class="water-alert" style="display: none;">
+            <p>Spremnik je skoro prazan. Molimo napunite ga!</p>
+        </div>
     </section>
     <section id="vremenska_prognoza">
         <div class="container">
