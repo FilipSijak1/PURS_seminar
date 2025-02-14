@@ -15,92 +15,58 @@ app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 app.logger, script_logger = setup_logging()
 
 # MQTT setup
-mqtt_broker = "your_MQTT_broker_address"
+mqtt_broker = "192.168.0.52"
 mqtt_port = 1883
-mqtt_user = "your_MQTT_username"
-mqtt_password = "your_MQTT_password"
-moisture_topic = "sensor/moisture"
-water_level_topic = "sensor/water_level"
+sensor_data_topic = "sensor/data"
 watering_status_topic = "control/watering_status"
 
 mqtt_client = mqtt.Client()
-mqtt_client.username_pw_set(mqtt_user, mqtt_password)
 
 moisture_level = None
 water_level = None
+watering_status = None
 
 # MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     app.logger.info(f"Connected to MQTT broker with result code {rc}")
-    client.subscribe(moisture_topic)
-    client.subscribe(water_level_topic)
+    client.subscribe(sensor_data_topic)
 
 # Callback for received messages
 def on_message(client, userdata, msg):
     global moisture_level, water_level
-    app.logger.info(f"Received message on topic {msg.topic}: {msg.payload.decode()}")
-    if msg.topic == moisture_topic:
-        moisture_level = int(msg.payload.decode())
-    elif msg.topic == water_level_topic:
-        water_level = int(msg.payload.decode())
-    check_conditions_and_publish()
+    if msg.topic == sensor_data_topic:
+        data = msg.payload.decode().split(',')
+        moisture_level = int(data[0])
+        water_level = int(data[1])
+        with app.app_context():
+            user_id = session.get('user_id')  # Get the user_id from the session
+            check_conditions_and_publish(user_id)
 
 # Function to check conditions and publish the watering status
-def check_conditions_and_publish():
-    global moisture_level, water_level
+def check_conditions_and_publish(user_id):
+    global moisture_level, water_level, watering_status
     if moisture_level is not None and water_level is not None:
-        weather_ok = fetchWeatherForSavedLocation()
-        mqtt_ok = checkMQTTDataAndWater()
-        if weather_ok and mqtt_ok:
-            mqtt_client.publish(watering_status_topic, "true")
-        else:
-            mqtt_client.publish(watering_status_topic, "false")
-
-# MQTT client setup
-mqtt_client.on_connect = on_connect
-mqtt_client.on_message = on_message
-mqtt_client.connect(mqtt_broker, mqtt_port, 60)
-mqtt_client.loop_start()
-
-# Log event endpoint
-@app.route('/log_event', methods=['POST'])
-def log_event():
-    data = request.json
-    script_logger.info(f"Client log: {data['message']}")
-    return '', 204
-
-# Save location endpoint
-@app.route('/save_location', methods=['POST'])
-def save_location():
-    response = make_response()
-    location_data = request.json
-    app.logger.info(f"Received location data: {location_data}")
-
-    try:
-        # Delete the previous location from the database if it exists
-        g.cursor.execute(DELETE_LOCATION_QUERY, (session['user_id'],))
-        app.logger.info(f"Deleted previous location for user_id: {session['user_id']}")
-
-        # Insert the new location into the database
-        g.cursor.execute(SAVE_LOCATION_QUERY, (location_data['location'], session['user_id']))
-        g.connection.commit()
-        app.logger.info(f"Saved new location: {location_data['location']} for user_id: {session['user_id']}")
-        response.data = 'Uspješno spremljena nova lokacija'
-        response.status_code = 201
-    except Exception as e:
-        g.connection.rollback()
-        app.logger.error(f"Error saving location: {str(e)}")
-        response.data = f'Greška prilikom spremanja lokacije: {str(e)}'
-        response.status_code = 500
-
-    return response
+        # Create a new database connection and cursor
+        connection = MySQLdb.connect(host="localhost", user="app", passwd="1234", db="app")
+        cursor = connection.cursor()
+        try:
+            weather_ok = fetchWeatherForSavedLocation(cursor, user_id)
+            mqtt_ok = checkMQTTDataAndWater()
+            new_watering_status = "true" if weather_ok and mqtt_ok else "false"
+            if new_watering_status != watering_status:
+                watering_status = new_watering_status
+                mqtt_client.publish(watering_status_topic, watering_status)
+                app.logger.info(f"Watering status changed to: {watering_status}")
+        finally:
+            cursor.close()
+            connection.close()
 
 # Example function to fetch weather for saved location
-def fetchWeatherForSavedLocation():
+def fetchWeatherForSavedLocation(cursor, user_id):
     try:
-        g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
-        location = g.cursor.fetchone()
-        app.logger.info(f"Fetched location for user_id: {session['user_id']} - {location}")
+        cursor.execute(GET_LOCATION_QUERY, (user_id,))
+        location = cursor.fetchone()
+        app.logger.info(f"Fetched location for user_id: {user_id} - {location}")
 
         if location:
             location = location[0]  # Assume there is only one saved location per user
@@ -135,13 +101,10 @@ def checkMQTTDataAndWater():
     try:
         # Check conditions
         if water_level < 25:
-            app.logger.info("Water level too low, watering disabled.")
             return False
         elif moisture_level > 50:
-            app.logger.info("Soil moisture too high, watering disabled.")
             return False
         else:
-            app.logger.info("Conditions suitable for watering.")
             return True
     except Exception as e:
         app.logger.error(f"Error checking MQTT data: {str(e)}")
@@ -158,6 +121,13 @@ def before_request_func():
         return
     if session.get('username') is None and request.path != '/register':
         return redirect(url_for('login_page'))
+
+@app.teardown_request
+def teardown_request_func(exception=None):
+    if hasattr(g, 'cursor'):
+        g.cursor.close()
+    if hasattr(g, 'connection'):
+        g.connection.close()
 
 @app.get('/')
 def index():
@@ -268,7 +238,7 @@ def login():
                 session['user_id'] = user[0] 
                 
                 # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
-                fetchWeatherForSavedLocation()
+                fetchWeatherForSavedLocation(g.cursor, user[0])
 
                 return redirect(url_for('index'))
             else:
@@ -287,7 +257,7 @@ def login():
 @app.route('/update_weather', methods=['POST'])
 def update_weather():
     response = make_response()
-    weather_data = fetchWeatherForSavedLocation()  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
+    weather_data = fetchWeatherForSavedLocation(g.cursor, session['user_id'])  # Pass the cursor to the function
 
     try:
         if weather_data:
@@ -312,6 +282,13 @@ def get_saved_location():
         return jsonify({'location': location}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/get_sensor_data')
+def get_sensor_data():
+    return jsonify({
+        'moisture_level': moisture_level,
+        'water_level': water_level
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)

@@ -3,36 +3,43 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "your_SSID";
-const char* password = "your_PASSWORD";
+const char* ssid = "A1-NE6037-F477E8";
+const char* password = "yYfAg$9q";
 
 // MQTT broker details
-const char* mqtt_server = "your_MQTT_broker_address";
+const char* mqtt_server = "192.168.0.52";
 const int mqtt_port = 1883;
-const char* mqtt_user = "your_MQTT_username";
-const char* mqtt_password = "your_MQTT_password";
 
 // MQTT topics
-const char* moisture_topic = "sensor/moisture";
-const char* water_level_topic = "sensor/water_level";
-const char* watering_status_topic = "control/watering_status";
+const char* sensor_data_topic = "sensor/data";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-int sensor_pin = A0;       // Sensor Pin
+int sensor_pin = A0;       // Senzor vlage tla
+int water_level_pin = A1;  // Senzor razine vode
+int red_led = 6;           // Crvena LED (Pumpa ugašena)
+int green_led = 5;         // Zelena LED (Pumpa radi)
 int relay_pin = 7;         // Relay Pin
-int water_level_pin = A1;
+
+// Function declarations
+void setup_wifi();
+void callback(char* topic, byte* payload, unsigned int length);
+void reconnect();
 
 void setup() {
   Serial.begin(9600);
   pinMode(sensor_pin, INPUT);
-  pinMode(relay_pin, OUTPUT);
   pinMode(water_level_pin, INPUT);
+  pinMode(red_led, OUTPUT);
+  pinMode(green_led, OUTPUT);
+  pinMode(relay_pin, OUTPUT);
 
+  Serial.println("Starting setup...");
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  Serial.println("Setup complete.");
 }
 
 void setup_wifi() {
@@ -64,7 +71,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("] ");
   Serial.println(message);
 
-  if (String(topic) == watering_status_topic) {
+  if (String(topic) == "control/watering_status") {
     if (message == "true") {
       digitalWrite(relay_pin, HIGH);
     } else {
@@ -76,9 +83,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("ArduinoClient", mqtt_user, mqtt_password)) {
+    if (client.connect("ArduinoClient")) {
       Serial.println("connected");
-      client.subscribe(watering_status_topic);
+      client.subscribe("control/watering_status");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -89,32 +96,49 @@ void reconnect() {
 }
 
 void loop() {
-  if (!client.connected()) {
+  if (WiFi.status() == WL_CONNECTED && !client.connected()) {
     reconnect();
   }
-  client.loop();
+  if (WiFi.status() == WL_CONNECTED) {
+    client.loop();
+  }
 
   int sensor_data = analogRead(sensor_pin);
   int mappedMoistureLevel = map(sensor_data, 50, 595, 0, 100);
   int waterLevel = analogRead(water_level_pin);
-  int mappedWaterLevel = map(waterLevel, 140, 670, 0, 100);
+  int mappedWaterLevel = map(waterLevel, 15, 300, 0, 100);
 
-  String moisture_message = String(mappedMoistureLevel);
-  String water_level_message = String(mappedWaterLevel);
+  if (WiFi.status() == WL_CONNECTED) {
+    String sensor_data_message = String(mappedMoistureLevel) + "," + String(mappedWaterLevel);
+    client.publish(sensor_data_topic, sensor_data_message.c_str());
+  }
 
-  client.publish(moisture_topic, moisture_message.c_str());
-  client.publish(water_level_topic, water_level_message.c_str());
+  Serial.println("==============");
+  Serial.print("Senzor vlage tla (RAW): ");
+  Serial.println(sensor_data);  // SIROVO očitanje tla
 
-  Serial.print("Sensor_data: ");
-  Serial.print(sensor_data);
-  Serial.print("\t | Vlaznost tla: ");
+  Serial.print("Vlažnost tla: ");
   Serial.print(mappedMoistureLevel);
   Serial.println("%");
-  Serial.print("Očitana vrijednost razine vode: ");
-  Serial.println(waterLevel);
+
+  Serial.print("Senzor razine vode (RAW): ");
+  Serial.println(waterLevel);  // SIROVO očitanje vode
+
   Serial.print("Razina vode: ");
   Serial.print(mappedWaterLevel);
   Serial.println("%");
+  Serial.println("==============");
 
-  delay(10000); // Publish every 10 seconds
+  // --- LED signalizacija umjesto pumpe --- //
+  if (mappedMoistureLevel < 30 && mappedWaterLevel > 25) {
+    Serial.println("Tlo je suho → Pumpa se pali (ZELENA LED)!");
+    digitalWrite(green_led, HIGH);  // Pumpa simulirana ZELENOM LED
+    digitalWrite(red_led, LOW);     
+  } else {
+    Serial.println("Tlo je vlažno ili nema dovoljno vode → Pumpa je ugašena (CRVENA LED).");
+    digitalWrite(green_led, LOW);   // Pumpa ne radi
+    digitalWrite(red_led, HIGH);    
+  }
+
+  delay(1000); // Publish every 1 second
 }
