@@ -22,7 +22,7 @@ SELECT location FROM locations WHERE user_id = %s
 
 # SQL query for saving location
 SAVE_LOCATION_QUERY = """
-INSERT INTO locations (location, user_id) VALUES (%s, %s)
+REPLACE INTO locations (user_id, location) VALUES (%s, %s)
 """
 
 # SQL query for deleting location
@@ -42,7 +42,17 @@ password = UNHEX(SHA2('{{passwd}}', 256))
 AND korisnicko_ime = '{{user}}';
 """
 
+# SQL query for checking if location exists for user
+CHECK_LOCATION_EXISTS_QUERY = """
+SELECT COUNT(*) FROM locations WHERE user_id = %s
+"""
 
-# SELECT * FROM korisnik WHERE
-# password = UNHEX(SHA2(%s, 256)) 
-# AND korisnicko_ime = %s;
+# SQL query for inserting new location
+INSERT_LOCATION_QUERY = """
+INSERT INTO locations (user_id, location) VALUES (%s, %s)
+"""
+
+# SQL query for updating existing location
+UPDATE_LOCATION_QUERY = """
+UPDATE locations SET location = %s WHERE user_id = %s
+"""

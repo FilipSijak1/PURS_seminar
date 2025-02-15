@@ -27,7 +27,7 @@
     </header>
     <section id="naslovnica">
         <div class="progress-container">
-            <div class="progress-label">Vlažnost tla:</div>
+            <div class="progress-label">Vlažnost tla</div>
             <div class="progress" id="humidity-progress">
                 <div class="progress-bar" id="humidity-bar"></div>
                 <span class="progress-value" id="humidity-value">0%</span> <!-- Dodani tekstualni postotak -->
@@ -35,11 +35,27 @@
         </div>
 
         <div class="progress-container">
-            <div class="progress-label">Razina vode:</div>
+            <div class="progress-label">Razina vode</div>
             <div class="progress" id="water-level-progress">
                 <div class="progress-bar" id="water-level-bar"></div>
                 <span class="progress-value" id="water-level-value">0%</span> <!-- Dodani tekstualni postotak -->
             </div>
+        </div>
+
+        <!-- Dodani div za skočnu poruku -->
+        <div id="weather-alert" class="weather-alert" style="display: none;">
+            <p>Automatsko zalijevanje nije moguće zbog trenutnih vremenskih uvjeta (kiša ili oblačno).</p>
+            <button class="close-alert" onclick="closeAlert()">x</button> <!-- Dodani gumb za zatvaranje -->
+        </div>
+
+        <!-- Dodani div za blinkajuću poruku -->
+        <div id="watering-alert" class="watering-alert" style="display: none;">
+            <p>Zalijevanje u tijeku...</p>
+        </div>
+
+        <!-- Dodani div za skočnu poruku za razinu vode -->
+        <div id="water-alert" class="water-alert" style="display: none;">
+            <p>Spremnik je skoro prazan. Molimo napunite ga!</p>
         </div>
     </section>
     <section id="vremenska_prognoza">

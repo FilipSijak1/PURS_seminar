@@ -2,79 +2,79 @@ from flask import Flask, request, redirect, url_for, render_template, session, m
 from flask import g
 import MySQLdb
 from hashlib import sha256
-import requests  # Dodali smo import za requests biblioteku
-import paho.mqtt.publish as publish
+import requests
+import paho.mqtt.client as mqtt
 import json
-from database.queries import LOGIN_QUERY, REGISTER_QUERY, SAVE_LOCATION_QUERY, DELETE_LOCATION_QUERY, GET_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY
-import logging
-from logging.handlers import RotatingFileHandler
-import os
+from database.queries import LOGIN_QUERY, REGISTER_QUERY, CHECK_LOCATION_EXISTS_QUERY, INSERT_LOCATION_QUERY, UPDATE_LOCATION_QUERY, CHECK_EMAIL_QUERY, CHECK_USERNAME_QUERY, GET_LOCATION_QUERY
+from logging_config import setup_logging
 
 app = Flask("app")
 app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 
-# Ensure the logs directory exists
-logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
+# logging setup
+app.logger, script_logger = setup_logging()
 
-# Set up logging for app
-app_log_file_path = os.path.join(logs_dir, 'app.log')
-app_handler = RotatingFileHandler(app_log_file_path, maxBytes=10000, backupCount=1)
-app_handler.setLevel(logging.INFO)
-app_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-app_handler.setFormatter(app_formatter)
-app.logger.addHandler(app_handler)
-app.logger.setLevel(logging.INFO)  # Ensure the logger level is set
+# MQTT setup
+mqtt_broker = "192.168.0.3"
+mqtt_port = 1883
+sensor_data_topic = "sensor/data"
+watering_status_topic = "control/watering_status"
 
-# Set up logging for script.js
-script_log_file_path = os.path.join(logs_dir, 'script.log')
-script_handler = RotatingFileHandler(script_log_file_path, maxBytes=10000, backupCount=1)
-script_handler.setLevel(logging.INFO)
-script_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-script_handler.setFormatter(script_formatter)
-script_logger = logging.getLogger('scriptLogger')
-script_logger.addHandler(script_handler)
-script_logger.setLevel(logging.INFO)
+moisture_level = None
+water_level = None
+watering_status = None
 
-@app.route('/log_event', methods=['POST'])
-def log_event():
-    data = request.json
-    script_logger.info(f"Client log: {data['message']}")
-    return '', 204
+# Global variable to store user_id
+user_id = None
 
-@app.route('/save_location', methods=['POST'])
-def save_location():
-    response = make_response()
-    location_data = request.json
-    app.logger.info(f"Received location data: {location_data}")
+# MQTT callbacks
+def on_connect(client, userdata, flags, rc):
+    app.logger.info(f"Connected to MQTT broker with result code {rc}")
+    client.subscribe(sensor_data_topic)
 
-    try:
-        # Delete the previous location from the database if it exists
-        g.cursor.execute(DELETE_LOCATION_QUERY, (session['user_id'],))
-        app.logger.info(f"Deleted previous location for user_id: {session['user_id']}")
+# Callback for received messages
+def on_message(client, userdata, msg):
+    global moisture_level, water_level, user_id
+    app.logger.info(f"Message received on topic {msg.topic}")
+    if msg.topic == sensor_data_topic:
+        data = msg.payload.decode().split(',')
+        moisture_level = int(data[0])
+        water_level = int(data[1])
+        app.logger.info(f"Received sensor data: moisture_level={moisture_level}, water_level={water_level}")
+        check_conditions_and_publish(user_id)
 
-        # Insert the new location into the database
-        g.cursor.execute(SAVE_LOCATION_QUERY, (location_data['location'], session['user_id']))
-        g.connection.commit()
-        app.logger.info(f"Saved new location: {location_data['location']} for user_id: {session['user_id']}")
+# MQTT client setup
+mqtt_client = mqtt.Client()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+mqtt_client.loop_start()
 
-        response.data = 'Uspješno spremljena nova lokacija'
-        response.status_code = 201
-    except Exception as e:
-        g.connection.rollback()
-        app.logger.error(f"Error saving location: {str(e)}")
-        response.data = f'Greška prilikom spremanja lokacije: {str(e)}'
-        response.status_code = 500
-    
-    return response
+# Function to check conditions and publish the watering status
+def check_conditions_and_publish(user_id):
+    global moisture_level, water_level, watering_status
+    app.logger.info("Checking conditions and publishing watering status")
+    if moisture_level is not None and water_level is not None:
+        weather_ok = fetchWeatherForSavedLocation(user_id)
+        mqtt_ok = checkMQTTDataAndWater()
+        new_watering_status = "true" if weather_ok and mqtt_ok else "false"
+        if new_watering_status != watering_status:
+            watering_status = new_watering_status
+            mqtt_client.publish(watering_status_topic, watering_status)
+            app.logger.info(f"Watering status changed to: {watering_status}")
+        else:
+            app.logger.info("Watering status remains unchanged")
+    else:
+        app.logger.info("Moisture level or water level is None")
 
 # Example function to fetch weather for saved location
-def fetchWeatherForSavedLocation():
+def fetchWeatherForSavedLocation(user_id):
     try:
-        g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
-        location = g.cursor.fetchone()
-        app.logger.info(f"Fetched location for user_id: {session['user_id']} - {location}")
+        connection = MySQLdb.connect(host="localhost", user="app", passwd="1234", db="app")
+        cursor = connection.cursor()
+        cursor.execute(GET_LOCATION_QUERY, (user_id,))
+        location = cursor.fetchone()
+        app.logger.info(f"Fetched location for user_id: {user_id} - {location}")
 
         if location:
             location = location[0]  # Assume there is only one saved location per user
@@ -86,15 +86,40 @@ def fetchWeatherForSavedLocation():
             app.logger.info(f"Weather data fetched: {weather_data}")
 
             # Process weather data
-            # You can add further processing or save it to the database here
+            weather_condition = weather_data['weather'][0]['main']
+            temperature = weather_data['main']['temp']
 
-            return weather_data
+            # Check weather conditions
+            if weather_condition in ['Clouds', 'Rain'] or temperature < 10 or temperature > 27:
+                app.logger.info("Weather conditions not suitable for watering.")
+                return False
+            else:
+                app.logger.info("Weather conditions suitable for watering.")
+                return True
         else:
             app.logger.info("No location found for user.")
             return None
     except Exception as e:
         app.logger.error(f"Error fetching weather data: {str(e)}")
         return None
+    finally:
+        cursor.close()
+        connection.close()
+
+# Function to check MQTT data and decide on watering
+def checkMQTTDataAndWater():
+    global moisture_level, water_level
+    try:
+        # Check conditions
+        if water_level < 25:
+            return False
+        elif moisture_level > 50:
+            return False
+        else:
+            return True
+    except Exception as e:
+        app.logger.error(f"Error checking MQTT data: {str(e)}")
+        return False
 
 @app.before_request
 def before_request_func():
@@ -108,6 +133,13 @@ def before_request_func():
     if session.get('username') is None and request.path != '/register':
         return redirect(url_for('login_page'))
 
+@app.teardown_request
+def teardown_request_func(exception=None):
+    if hasattr(g, 'cursor'):
+        g.cursor.close()
+    if hasattr(g, 'connection'):
+        g.connection.close()
+
 @app.get('/')
 def index():
     response = render_template('index.html')
@@ -120,97 +152,117 @@ def logout():
 
 @app.get('/login')
 def login_page():
-    # Provjerava je li korisnik već prijavljen
+    # Check if the user is already logged in
     if 'username' in session:
         return redirect(url_for('index'))
     
-    # Ako nije prijavljen, prikaži stranicu za prijavu
-    response = render_template('login.html', title='Login stranica')
+    # If not logged in, display the login page
+    response = render_template('login.html', title='Login Page')
     return response
+
+@app.get('/vremenska_prognoza')
+def vremenska_prognoza():
+    response = render_template('vremenska_prognoza.html')
+    return response, 200
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'GET':
-        return render_template('registration.html', title='Registracija')
+        return render_template('registration.html', title='Registration')
     
     response = make_response()
-    user_data = request.json  # Čitanje JSON podataka iz zahtjeva
-    app.logger.info(f"Received user data: {user_data}")
+    user_data = request.json  # Read JSON data from the request
 
-    # Provjerava se jesu li svi potrebni podaci prisutni
+    # Copy user_data and remove passwords for logging
+    log_data = user_data.copy()
+    log_data.pop('lozinka', None)
+    log_data.pop('ponovljena_lozinka', None)
+    app.logger.info(f"Received user data: {log_data}")
+
+    # Check if all required fields are present
     required_fields = ['ime', 'prezime', 'korisnicko_ime', 'lozinka', 'ponovljena_lozinka', 'email']
     if all(field in user_data for field in required_fields):
-        # Provjera podudaranja lozinki
+        # Check if passwords match
         if user_data['lozinka'] != user_data['ponovljena_lozinka']:
-            response.data = 'Lozinke se ne podudaraju'
+            response.data = 'Passwords do not match'
             response.status_code = 400
         else:
             try:
-                # Provjera postojanja korisnika s istim emailom
+                # Check if a user with the same email already exists
                 g.cursor.execute(CHECK_EMAIL_QUERY, (user_data['email'],))
                 existing_email = g.cursor.fetchone()
                 app.logger.info(f"Existing email: {existing_email}")
 
-                # Provjera postojanja korisnika s istim korisničkim imenom
+                # Check if a user with the same username already exists
                 g.cursor.execute(CHECK_USERNAME_QUERY, (user_data['korisnicko_ime'],))
                 existing_username = g.cursor.fetchone()
                 app.logger.info(f"Existing username: {existing_username}")
 
                 if existing_email:
-                    response.data = 'Korisnik s tom email adresom već postoji'
+                    response.data = 'A user with that email address already exists'
                     response.status_code = 400
                 elif existing_username:
-                    response.data = 'Korisnik s tim korisničkim imenom već postoji'
+                    response.data = 'A user with that username already exists'
                     response.status_code = 400
                 else:
-                    # Izvršavanje SQL upita s podacima korisnika
+                    # Execute SQL query with user data
                     hashed_lozinka = sha256(user_data['lozinka'].encode()).hexdigest()
                     app.logger.info(f"Hashed password: {hashed_lozinka}")
                     g.cursor.execute(REGISTER_QUERY, (user_data['ime'], user_data['prezime'], user_data['korisnicko_ime'], hashed_lozinka, user_data['email']))
                     g.connection.commit()
-                    response.data = 'Uspješno ste registrirali korisnika'
+                    response.data = 'User successfully registered'
                     response.status_code = 201
             except Exception as e:
                 app.logger.error(f"Error during registration: {str(e)}")
-                response.data = f'Greška prilikom registracije: {str(e)}'
+                response.data = f'Error during registration: {str(e)}'
                 response.status_code = 500
     else:
-        response.data = 'Nisu pruženi svi potrebni podaci'
+        response.data = 'Not all required data provided'
         response.status_code = 400
     
     return response
 
 @app.route('/login', methods=['POST'])
 def login():
+    global user_id
     response = make_response()
     username = request.form.get('korisnicko_ime')
     password = request.form.get('lozinka')
 
     try:
-        # Hash the password for comparison
-        hashed_password = sha256(password.encode()).hexdigest()
-        app.logger.info(f"Executing query: {LOGIN_QUERY} with username: {username} and hashed password: {hashed_password}")
-
-        g.cursor.execute(LOGIN_QUERY, (username, hashed_password))
+        # Check if a user with the entered username exists
+        g.cursor.execute(CHECK_USERNAME_QUERY, (username,))
         user = g.cursor.fetchone()
 
-        # Debugging: Print the result from the database
-        app.logger.info(f"Query result: {user}")
-
         if user:
-            session['username'] = user[3]  # Save username in session
-            session['user_id'] = user[0] 
-            
-            # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
-            fetchWeatherForSavedLocation()
+            # Hash the password for comparison
+            hashed_password = sha256(password.encode()).hexdigest()
+            app.logger.info(f"Executing query: {LOGIN_QUERY} with username: {username} and hashed password: {hashed_password}")
 
-            return redirect(url_for('index'))
+            g.cursor.execute(LOGIN_QUERY, (username, hashed_password))
+            user = g.cursor.fetchone()
+
+            # Debugging: Print the result from the database
+            app.logger.info(f"Query result: {user}")
+
+            if user:
+                session['username'] = user[3]  # Save username in session
+                session['user_id'] = user[0]
+                user_id = user[0]  # Store user_id in global variable
+                
+                # After user login, automatically fetch weather data for saved location
+                fetchWeatherForSavedLocation(user[0])
+
+                return redirect(url_for('index'))
+            else:
+                response.data = 'Incorrect username or password'
+                response.status_code = 401
         else:
-            response.data = 'Pogrešno korisničko ime ili lozinka'
-            response.status_code = 401
+            response.data = 'User does not exist'
+            response.status_code = 404
     except Exception as e:
         app.logger.error(f"Error during login: {str(e)}")
-        response.data = f'Greška prilikom prijave: {str(e)}'
+        response.data = f'Error during login: {str(e)}'
         response.status_code = 500
 
     return response
@@ -218,26 +270,17 @@ def login():
 @app.route('/update_weather', methods=['POST'])
 def update_weather():
     response = make_response()
-    weather_data = fetchWeatherForSavedLocation()  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
+    weather_data = fetchWeatherForSavedLocation(session['user_id'])  # Fetch weather data using fetchWeatherForSavedLocation function
 
     try:
-        # Ovdje možete izvršiti bilo kakvu željenu obradu podataka o vremenskoj prognozi
-        # Na primjer, možete ih spremiti u bazu podataka, poslati na daljnju analizu itd.
-
-        # Primjer spremanja podataka u bazu podataka:
         if weather_data:
-            # Ovdje biste izvršili SQL upit za spremanje podataka o vremenskoj prognozi
-            # Pretpostavljamo da imate bazu podataka već postavljenu
-            # Na primjer, začasno ćemo ispisati podatke u konzoli
-            print(weather_data)
-            
-            response.data = 'Podaci o vremenskoj prognozi su uspješno ažurirani'
+            response.data = 'Weather data successfully updated'
             response.status_code = 200
         else:
-            response.data = 'Podaci o vremenskoj prognozi nisu dostupni'
+            response.data = 'Weather data not available'
             response.status_code = 404
     except Exception as e:
-        response.data = f'Greška prilikom ažuriranja podataka o vremenskoj prognozi: {str(e)}'
+        response.data = f'Error updating weather data: {str(e)}'
         response.status_code = 500
     
     return response
@@ -245,12 +288,59 @@ def update_weather():
 @app.route('/get_saved_location', methods=['GET'])
 def get_saved_location():
     try:
-        # Dohvati spremljenu lokaciju iz baze podataka
+        # Fetch saved location from the database
         g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
-        location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
-
+        location = g.cursor.fetchone()[0]  
         return jsonify({'location': location}), 200
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/get_sensor_data')
+def get_sensor_data():
+    global moisture_level, water_level
+    return jsonify({
+        'moisture_level': moisture_level if moisture_level is not None else 0,
+        'water_level': water_level if water_level is not None else 0
+    })
+
+@app.route('/log_event', methods['POST'])
+def log_event():
+    try:
+        event_data = request.json
+        app.logger.info(f"Received event data: {event_data}")
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        app.logger.error(f"Error logging event: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/save_location', methods=['POST'])
+def save_location():
+    try:
+        location_data = request.json
+        user_id = session.get('user_id')
+        app.logger.info(f"Saving location for user_id: {user_id} - {location_data}")
+        
+        if 'location' not in location_data:
+            response = jsonify({'error': 'Location data is missing'})
+            response.status_code = 400
+            return response
+        
+        # Check if a location already exists for the user
+        g.cursor.execute(CHECK_LOCATION_EXISTS_QUERY, (user_id,))
+        location_exists = g.cursor.fetchone()[0] > 0
+        
+        if location_exists:
+            # Update existing location
+            g.cursor.execute(UPDATE_LOCATION_QUERY, (location_data['location'], user_id))
+        else:
+            # Insert new location
+            g.cursor.execute(INSERT_LOCATION_QUERY, (user_id, location_data['location']))
+        
+        g.connection.commit()
+        app.logger.info("Location saved successfully")
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        app.logger.error(f"Error saving location: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
