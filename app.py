@@ -15,12 +15,10 @@ app.secret_key = '_5#y2L"F4Q8z-n-xec]//'
 app.logger, script_logger = setup_logging()
 
 # MQTT setup
-mqtt_broker = "192.168.0.52"
+mqtt_broker = "192.168.0.3"
 mqtt_port = 1883
 sensor_data_topic = "sensor/data"
 watering_status_topic = "control/watering_status"
-
-mqtt_client = mqtt.Client()
 
 moisture_level = None
 water_level = None
@@ -38,35 +36,36 @@ def on_message(client, userdata, msg):
         data = msg.payload.decode().split(',')
         moisture_level = int(data[0])
         water_level = int(data[1])
-        with app.app_context():
-            user_id = session.get('user_id')  # Get the user_id from the session
-            check_conditions_and_publish(user_id)
+        app.logger.info(f"Received sensor data: moisture_level={moisture_level}, water_level={water_level}")
+        check_conditions_and_publish()
+
+# MQTT client setup
+mqtt_client = mqtt.Client()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+mqtt_client.loop_start()
 
 # Function to check conditions and publish the watering status
-def check_conditions_and_publish(user_id):
+def check_conditions_and_publish():
     global moisture_level, water_level, watering_status
     if moisture_level is not None and water_level is not None:
-        # Create a new database connection and cursor
-        connection = MySQLdb.connect(host="localhost", user="app", passwd="1234", db="app")
-        cursor = connection.cursor()
-        try:
-            weather_ok = fetchWeatherForSavedLocation(cursor, user_id)
-            mqtt_ok = checkMQTTDataAndWater()
-            new_watering_status = "true" if weather_ok and mqtt_ok else "false"
-            if new_watering_status != watering_status:
-                watering_status = new_watering_status
-                mqtt_client.publish(watering_status_topic, watering_status)
-                app.logger.info(f"Watering status changed to: {watering_status}")
-        finally:
-            cursor.close()
-            connection.close()
+        weather_ok = fetchWeatherForSavedLocation()
+        mqtt_ok = checkMQTTDataAndWater()
+        new_watering_status = "true" if weather_ok and mqtt_ok else "false"
+        if new_watering_status != watering_status:
+            watering_status = new_watering_status
+            mqtt_client.publish(watering_status_topic, watering_status)
+            app.logger.info(f"Watering status changed to: {watering_status}")
 
 # Example function to fetch weather for saved location
-def fetchWeatherForSavedLocation(cursor, user_id):
+def fetchWeatherForSavedLocation():
     try:
-        cursor.execute(GET_LOCATION_QUERY, (user_id,))
+        connection = MySQLdb.connect(host="localhost", user="app", passwd="1234", db="app")
+        cursor = connection.cursor()
+        cursor.execute(GET_LOCATION_QUERY, (1,))  # Hardcoded user_id for testing
         location = cursor.fetchone()
-        app.logger.info(f"Fetched location for user_id: {user_id} - {location}")
+        app.logger.info(f"Fetched location for user_id: 1 - {location}")
 
         if location:
             location = location[0]  # Assume there is only one saved location per user
@@ -94,6 +93,9 @@ def fetchWeatherForSavedLocation(cursor, user_id):
     except Exception as e:
         app.logger.error(f"Error fetching weather data: {str(e)}")
         return None
+    finally:
+        cursor.close()
+        connection.close()
 
 # Function to check MQTT data and decide on watering
 def checkMQTTDataAndWater():
@@ -238,7 +240,7 @@ def login():
                 session['user_id'] = user[0] 
                 
                 # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
-                fetchWeatherForSavedLocation(g.cursor, user[0])
+                fetchWeatherForSavedLocation()
 
                 return redirect(url_for('index'))
             else:
@@ -257,7 +259,7 @@ def login():
 @app.route('/update_weather', methods=['POST'])
 def update_weather():
     response = make_response()
-    weather_data = fetchWeatherForSavedLocation(g.cursor, session['user_id'])  # Pass the cursor to the function
+    weather_data = fetchWeatherForSavedLocation()  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
 
     try:
         if weather_data:
@@ -285,9 +287,10 @@ def get_saved_location():
 
 @app.route('/get_sensor_data')
 def get_sensor_data():
+    global moisture_level, water_level
     return jsonify({
-        'moisture_level': moisture_level,
-        'water_level': water_level
+        'moisture_level': moisture_level if moisture_level is not None else 0,
+        'water_level': water_level if water_level is not None else 0
     })
 
 if __name__ == '__main__':

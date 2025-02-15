@@ -3,11 +3,11 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "A1-NE6037-F477E8";
-const char* password = "yYfAg$9q";
+const char* ssid = "ZTE_0DCCF9";
+const char* password = "5QF7B7J6B6";
 
 // MQTT broker details
-const char* mqtt_server = "192.168.0.52";
+const char* mqtt_server = "192.168.0.3";
 const int mqtt_port = 1883;
 
 // MQTT topics
@@ -111,6 +111,8 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     String sensor_data_message = String(mappedMoistureLevel) + "," + String(mappedWaterLevel);
     client.publish(sensor_data_topic, sensor_data_message.c_str());
+    Serial.print("Published sensor data: ");
+    Serial.println(sensor_data_message);
   }
 
   Serial.println("==============");

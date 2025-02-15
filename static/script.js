@@ -194,6 +194,7 @@ function fetchSensorData() {
     .then(response => response.json())
     .then(data => {
         const { moisture_level, water_level } = data;
+        console.log(`Received sensor data: moisture_level=${moisture_level}, water_level=${water_level}`);
         updateProgressBars(moisture_level, water_level);
         checkWaterLevel(water_level);
     })
