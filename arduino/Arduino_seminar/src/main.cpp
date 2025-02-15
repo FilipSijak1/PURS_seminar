@@ -12,14 +12,15 @@ const int mqtt_port = 1883;
 
 // MQTT topics
 const char* sensor_data_topic = "sensor/data";
+const char* watering_status_topic = "control/watering_status";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-int sensor_pin = A0;       // Senzor vlage tla
-int water_level_pin = A1;  // Senzor razine vode
-int red_led = 6;           // Crvena LED (Pumpa ugašena)
-int green_led = 5;         // Zelena LED (Pumpa radi)
+int sensor_pin = A0;       // Soil moisture sensor
+int water_level_pin = A1;  // Water level sensor
+int red_led = 6;           // Red LED (Pump off)
+int green_led = 5;         // Green LED (Pump on)
 int relay_pin = 7;         // Relay Pin
 
 // Function declarations
@@ -71,11 +72,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("] ");
   Serial.println(message);
 
-  if (String(topic) == "control/watering_status") {
+  if (String(topic) == watering_status_topic) {
     if (message == "true") {
       digitalWrite(relay_pin, HIGH);
+      digitalWrite(green_led, HIGH);  // Pump simulated by GREEN LED
+      digitalWrite(red_led, LOW);
+      Serial.println("Pump is on (GREEN LED)!");
     } else {
       digitalWrite(relay_pin, LOW);
+      digitalWrite(green_led, LOW);   // Pump off
+      digitalWrite(red_led, HIGH);
+      Serial.println("Pump is off (RED LED).");
     }
   }
 }
@@ -85,7 +92,7 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (client.connect("ArduinoClient")) {
       Serial.println("connected");
-      client.subscribe("control/watering_status");
+      client.subscribe(watering_status_topic);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -116,31 +123,20 @@ void loop() {
   }
 
   Serial.println("==============");
-  Serial.print("Senzor vlage tla (RAW): ");
-  Serial.println(sensor_data);  // SIROVO očitanje tla
+  Serial.print("Soil moisture sensor (RAW): ");
+  Serial.println(sensor_data);  // RAW soil reading
 
-  Serial.print("Vlažnost tla: ");
+  Serial.print("Soil moisture: ");
   Serial.print(mappedMoistureLevel);
   Serial.println("%");
 
-  Serial.print("Senzor razine vode (RAW): ");
-  Serial.println(waterLevel);  // SIROVO očitanje vode
+  Serial.print("Water level sensor (RAW): ");
+  Serial.println(waterLevel);  // RAW water reading
 
-  Serial.print("Razina vode: ");
+  Serial.print("Water level: ");
   Serial.print(mappedWaterLevel);
   Serial.println("%");
   Serial.println("==============");
-
-  // --- LED signalizacija umjesto pumpe --- //
-  if (mappedMoistureLevel < 30 && mappedWaterLevel > 25) {
-    Serial.println("Tlo je suho → Pumpa se pali (ZELENA LED)!");
-    digitalWrite(green_led, HIGH);  // Pumpa simulirana ZELENOM LED
-    digitalWrite(red_led, LOW);     
-  } else {
-    Serial.println("Tlo je vlažno ili nema dovoljno vode → Pumpa je ugašena (CRVENA LED).");
-    digitalWrite(green_led, LOW);   // Pumpa ne radi
-    digitalWrite(red_led, HIGH);    
-  }
 
   delay(1000); // Publish every 1 second
 }
