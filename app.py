@@ -303,7 +303,7 @@ def get_sensor_data():
         'water_level': water_level if water_level is not None else 0
     })
 
-@app.route('/log_event', methods['POST'])
+@app.route('/log_event', methods =['POST'])
 def log_event():
     try:
         event_data = request.json
