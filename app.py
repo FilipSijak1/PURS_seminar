@@ -24,6 +24,9 @@ moisture_level = None
 water_level = None
 watering_status = None
 
+# Global variable to store user_id
+user_id = None
+
 # MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     app.logger.info(f"Connected to MQTT broker with result code {rc}")
@@ -31,13 +34,13 @@ def on_connect(client, userdata, flags, rc):
 
 # Callback for received messages
 def on_message(client, userdata, msg):
-    global moisture_level, water_level
+    global moisture_level, water_level, user_id
     if msg.topic == sensor_data_topic:
         data = msg.payload.decode().split(',')
         moisture_level = int(data[0])
         water_level = int(data[1])
         app.logger.info(f"Received sensor data: moisture_level={moisture_level}, water_level={water_level}")
-        check_conditions_and_publish()
+        check_conditions_and_publish(user_id)
 
 # MQTT client setup
 mqtt_client = mqtt.Client()
@@ -47,10 +50,10 @@ mqtt_client.connect(mqtt_broker, mqtt_port, 60)
 mqtt_client.loop_start()
 
 # Function to check conditions and publish the watering status
-def check_conditions_and_publish():
+def check_conditions_and_publish(user_id):
     global moisture_level, water_level, watering_status
     if moisture_level is not None and water_level is not None:
-        weather_ok = fetchWeatherForSavedLocation()
+        weather_ok = fetchWeatherForSavedLocation(user_id)
         mqtt_ok = checkMQTTDataAndWater()
         new_watering_status = "true" if weather_ok and mqtt_ok else "false"
         if new_watering_status != watering_status:
@@ -59,13 +62,13 @@ def check_conditions_and_publish():
             app.logger.info(f"Watering status changed to: {watering_status}")
 
 # Example function to fetch weather for saved location
-def fetchWeatherForSavedLocation():
+def fetchWeatherForSavedLocation(user_id):
     try:
         connection = MySQLdb.connect(host="localhost", user="app", passwd="1234", db="app")
         cursor = connection.cursor()
-        cursor.execute(GET_LOCATION_QUERY, (1,))  # Hardcoded user_id for testing
+        cursor.execute(GET_LOCATION_QUERY, (user_id,))
         location = cursor.fetchone()
-        app.logger.info(f"Fetched location for user_id: 1 - {location}")
+        app.logger.info(f"Fetched location for user_id: {user_id} - {location}")
 
         if location:
             location = location[0]  # Assume there is only one saved location per user
@@ -215,6 +218,7 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    global user_id
     response = make_response()
     username = request.form.get('korisnicko_ime')
     password = request.form.get('lozinka')
@@ -237,10 +241,11 @@ def login():
 
             if user:
                 session['username'] = user[3]  # Save username in session
-                session['user_id'] = user[0] 
+                session['user_id'] = user[0]
+                user_id = user[0]  # Store user_id in global variable
                 
                 # Nakon prijave korisnika, automatski dohvatimo vremenske podatke za spremljenu lokaciju
-                fetchWeatherForSavedLocation()
+                fetchWeatherForSavedLocation(user[0])
 
                 return redirect(url_for('index'))
             else:
@@ -259,7 +264,7 @@ def login():
 @app.route('/update_weather', methods=['POST'])
 def update_weather():
     response = make_response()
-    weather_data = fetchWeatherForSavedLocation()  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
+    weather_data = fetchWeatherForSavedLocation(session['user_id'])  # Dohvaćanje vremenskih podataka pomoću funkcije fetchWeatherForSavedLocation
 
     try:
         if weather_data:
@@ -279,8 +284,7 @@ def get_saved_location():
     try:
         # Dohvati spremljenu lokaciju iz baze podataka
         g.cursor.execute(GET_LOCATION_QUERY, (session['user_id'],))
-        location = g.cursor.fetchone()[0]  # Pretpostavljamo da postoji samo jedna spremljena lokacija po korisniku
-
+        location = g.cursor.fetchone()[0]  
         return jsonify({'location': location}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -292,6 +296,30 @@ def get_sensor_data():
         'moisture_level': moisture_level if moisture_level is not None else 0,
         'water_level': water_level if water_level is not None else 0
     })
+
+@app.route('/log_event', methods=['POST'])
+def log_event():
+    try:
+        event_data = request.json
+        app.logger.info(f"Received event data: {event_data}")
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        app.logger.error(f"Error logging event: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/save_location', methods=['POST'])
+def save_location():
+    try:
+        location_data = request.json
+        user_id = session.get('user_id')
+        app.logger.info(f"Saving location for user_id: {user_id} - {location_data}")
+        # Ovdje možete dodati logiku za spremanje lokacije u bazu podataka
+        g.cursor.execute(SAVE_LOCATION_QUERY, (location_data['location'], user_id))
+        g.connection.commit()
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        app.logger.error(f"Error saving location: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
