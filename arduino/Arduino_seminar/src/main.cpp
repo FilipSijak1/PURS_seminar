@@ -3,11 +3,11 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "ZTE_0DCCF9";
-const char* password = "5QF7B7J6B6";
+const char* ssid = "wifi_ssid";
+const char* password = "wifi_password";
 
 // MQTT broker details
-const char* mqtt_server = "192.168.0.3";
+const char* mqtt_server = "mqtt_broker_ip";
 const int mqtt_port = 1883;
 
 // MQTT topics
